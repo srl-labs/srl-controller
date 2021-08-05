@@ -1,0 +1,6 @@
+domain: srlinux.dev
+layout:
+- go.kubebuilder.io/v3
+projectName: srl-kne-operator
+repo: github.com/srl-labs/srl-kne-operator
+version: "3"
