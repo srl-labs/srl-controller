@@ -1,0 +1,3 @@
+resources:
+  - srl_variants.yml
+  - topomac.yml

@@ -3,4 +3,14 @@ layout:
 - go.kubebuilder.io/v3
 projectName: srl-kne-operator
 repo: github.com/srl-labs/srl-kne-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: srlinux.dev
+  group: kne
+  kind: Srlinux
+  path: github.com/srl-labs/srl-kne-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

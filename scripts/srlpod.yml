@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srlinux-test
+spec:
+  containers:
+    - name: srlinux
+      image: ghcr.io/nokia/srlinux
+      securityContext:
+        privileged: true
+      command: ["/tini"]
+      args:
+        [
+          "--",
+          "fixuid",
+          "-q",
+          "/entrypoint.sh",
+          "sudo",
+          "bash",
+          "-c",
+          "bash /tmp/topomac/topomac.sh && touch /.dockerenv && /opt/srlinux/bin/sr_linux",
+        ]
+      volumeMounts:
+        - name: variants
+          mountPath: "/tmp/topo"
+          readOnly: false
+        - name: topomac-script
+          mountPath: "/tmp/topomac"
+          readOnly: false
+  volumes:
+    - name: variants
+      configMap:
+        name: srlinux-variants
+        items:
+          - key: "ixrd2"
+            path: "topo-template.yml"
+    - name: topomac-script
+      configMap:
+        name: srl-topomac-script

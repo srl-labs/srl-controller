@@ -1,0 +1,20 @@
+# permissions for end users to view srlinuxes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: srlinux-viewer-role
+rules:
+- apiGroups:
+  - kne.srlinux.dev
+  resources:
+  - srlinuxes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kne.srlinux.dev
+  resources:
+  - srlinuxes/status
+  verbs:
+  - get
