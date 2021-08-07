@@ -18,14 +18,30 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
+	knenode "github.com/google/kne/topo/node"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	knev1alpha1 "github.com/srl-labs/srl-kne-operator/api/v1alpha1"
 )
+
+const (
+	InitContainerName = "networkop/init-wait:latest"
+)
+
+var defaultConstraints = map[string]string{
+	"cpu":    "0.5",
+	"memory": "1Gi",
+}
 
 // SrlinuxReconciler reconciles a Srlinux object
 type SrlinuxReconciler struct {
@@ -36,6 +52,7 @@ type SrlinuxReconciler struct {
 //+kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -49,21 +66,124 @@ type SrlinuxReconciler struct {
 func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	var Srlinux knev1alpha1.Srlinux
-	if err := r.Get(ctx, req.NamespacedName, &Srlinux); err != nil {
-		log.Error(err, "unable to fetch Srlinux")
-		// we'll ignore not-found errors, since they can't be fixed by an immediate
-		// requeue (we'll need to wait for a new notification), and we can get them
-		// on deleted requests.
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	var srlinux *knev1alpha1.Srlinux
+	var err error
+	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("Srlinux resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get Srlinux")
+		return ctrl.Result{}, err
+	}
+
+	// Check if the srlinux pod already exists, if not create a new one
+	found := &corev1.Pod{}
+	err = r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new srlinux pod
+		pod := r.podForSrlinux(srlinux)
+		log.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+		err = r.Create(ctx, pod)
+		if err != nil {
+			log.Error(err, "Failed to create new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+			return ctrl.Result{}, err
+		}
+		// Pod created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get Pod")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// podForSrlinux returns a srlinux Pod object
+func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: s.Name,
+			Labels: map[string]string{
+				"app":  s.Name,
+				"topo": s.Namespace,
+			},
+		},
+		Spec: corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  fmt.Sprintf("init-%s", s.Name),
+				Image: InitContainerName,
+				Args: []string{
+					fmt.Sprintf("%d", s.Spec.NumInterfaces+1),
+					fmt.Sprintf("%d", s.Spec.Config.Sleep),
+				},
+				ImagePullPolicy: "IfNotPresent",
+			}},
+			Containers: []corev1.Container{{
+				Name:            s.Name,
+				Image:           s.Spec.Config.Image,
+				Command:         s.Spec.Config.Command,
+				Args:            s.Spec.Config.Args,
+				Env:             knenode.ToEnvVar(s.Spec.Config.Env),
+				Resources:       knenode.ToResourceRequirements(defaultConstraints),
+				ImagePullPolicy: "IfNotPresent",
+				SecurityContext: &corev1.SecurityContext{
+					Privileged: pointer.Bool(true),
+				},
+			}},
+			TerminationGracePeriodSeconds: pointer.Int64(0),
+			NodeSelector:                  map[string]string{},
+			Affinity: &corev1.Affinity{
+				PodAntiAffinity: &corev1.PodAntiAffinity{
+					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{{
+						Weight: 100,
+						PodAffinityTerm: corev1.PodAffinityTerm{
+							LabelSelector: &metav1.LabelSelector{
+								MatchExpressions: []metav1.LabelSelectorRequirement{{
+									Key:      "topo",
+									Operator: "In",
+									Values:   []string{s.Name},
+								}},
+							},
+							TopologyKey: "kubernetes.io/hostname",
+						},
+					}},
+				},
+			},
+		},
+	}
+	// if pb.Config.ConfigData != nil {
+	// 	pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+	// 		Name: "startup-config-volume",
+	// 		VolumeSource: corev1.VolumeSource{
+	// 			ConfigMap: &corev1.ConfigMapVolumeSource{
+	// 				LocalObjectReference: corev1.LocalObjectReference{
+	// 					Name: fmt.Sprintf("%s-config", pb.Name),
+	// 				},
+	// 			},
+	// 		},
+	// 	})
+	// 	for i, c := range pod.Spec.Containers {
+	// 		pod.Spec.Containers[i].VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
+	// 			Name:      "startup-config-volume",
+	// 			MountPath: pb.Config.ConfigPath + "/" + pb.Config.ConfigFile,
+	// 			SubPath:   pb.Config.ConfigFile,
+	// 			ReadOnly:  true,
+	// 		})
+	// 	}
+	// }
+	ctrl.SetControllerReference(s, pod, r.Scheme)
+	return pod
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SrlinuxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&knev1alpha1.Srlinux{}).
+		Owns(&corev1.Pod{}).
 		Complete(r)
 }
