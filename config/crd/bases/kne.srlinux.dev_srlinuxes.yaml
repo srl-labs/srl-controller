@@ -66,6 +66,8 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              num-interfaces:
+                type: integer
             type: object
           status:
             description: SrlinuxStatus defines the observed state of Srlinux

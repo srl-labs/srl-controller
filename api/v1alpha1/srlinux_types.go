@@ -25,7 +25,8 @@ type SrlinuxSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Config *NodeConfig `json:"config,omitempty"`
+	Config        *NodeConfig `json:"config,omitempty"`
+	NumInterfaces int         `json:"num-interfaces,omitempty"`
 }
 
 // SrlinuxStatus defines the observed state of Srlinux
