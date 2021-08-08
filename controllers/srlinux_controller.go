@@ -18,14 +18,18 @@ package controllers
 
 import (
 	"context"
+	"embed"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	knenode "github.com/google/kne/topo/node"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,9 +43,12 @@ const (
 	defaultSrlinuxVariant    = "ixrd2"
 	variantsVolName          = "variants"
 	variantsVolMntPath       = "/tmp/topo"
-	topomacVolName           = "topomac-script"
-	topomacVolMntPath        = "/tmp/topomac"
 	variantsTemplateTempName = "topo-template.yml"
+	variantsCfgMapName       = "srlinux-variants"
+
+	topomacVolName    = "topomac-script"
+	topomacVolMntPath = "/tmp/topomac"
+	topomacCfgMapName = "srlinux-topomac-script"
 )
 
 var (
@@ -60,6 +67,8 @@ var (
 		"-c",
 		"bash /tmp/topomac/topomac.sh && touch /.dockerenv && /opt/srlinux/bin/sr_linux",
 	}
+
+	VariantsFS embed.FS
 )
 
 // SrlinuxReconciler reconciles a Srlinux object
@@ -104,6 +113,10 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	found := &corev1.Pod{}
 	err = r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
+		err = createConfigMapsIfNeeded(ctx, r, srlinux.Namespace, log)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		// Define a new srlinux pod
 		pod := r.podForSrlinux(srlinux)
 		log.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
@@ -190,7 +203,7 @@ func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "srlinux-variants",
+								Name: variantsCfgMapName,
 							},
 							Items: []corev1.KeyToPath{
 								{
@@ -206,7 +219,7 @@ func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "srl-topomac-script",
+								Name: topomacCfgMapName,
 							},
 						},
 					},
@@ -217,6 +230,52 @@ func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
 
 	ctrl.SetControllerReference(s, pod, r.Scheme)
 	return pod
+}
+
+// createConfigMapsIfNeeded creates srlinux-variants and srlinux-topomac config maps which every srlinux pod needs to mount
+func createConfigMapsIfNeeded(ctx context.Context, r *SrlinuxReconciler, ns string, log logr.Logger) error {
+	// Check if the variants cfg map already exists, if not create a new one
+	cfgMap := &corev1.ConfigMap{}
+	err := r.Get(ctx, types.NamespacedName{Name: variantsCfgMapName, Namespace: ns}, cfgMap)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating a new variants configmap")
+		data, err := VariantsFS.ReadFile("manifests/variants/srl_variants.yml")
+		if err != nil {
+			return err
+		}
+		decoder := serializer.NewCodecFactory(clientgoscheme.Scheme).UniversalDecoder()
+		err = runtime.DecodeInto(decoder, data, cfgMap)
+		if err != nil {
+			return err
+		}
+		cfgMap.ObjectMeta.Namespace = ns
+		err = r.Create(ctx, cfgMap)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Check if the topomac script cfg map already exists, if not create a new one
+	cfgMap = &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: topomacCfgMapName, Namespace: ns}, cfgMap)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating a new topomac script configmap")
+		data, err := VariantsFS.ReadFile("manifests/variants/topomac.yml")
+		if err != nil {
+			return err
+		}
+		decoder := serializer.NewCodecFactory(clientgoscheme.Scheme).UniversalDecoder()
+		err = runtime.DecodeInto(decoder, data, cfgMap)
+		if err != nil {
+			return err
+		}
+		cfgMap.ObjectMeta.Namespace = ns
+		err = r.Create(ctx, cfgMap)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

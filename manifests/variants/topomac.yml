@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: srl-topomac-script
+  name: srlinux-topomac-script
 data:
   topomac.sh: |
     #!/bin/bash

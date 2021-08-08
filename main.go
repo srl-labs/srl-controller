@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"embed"
 	"flag"
 	"os"
 
@@ -39,6 +40,9 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	//go:embed manifests/variants/*
+	variantsFS embed.FS
 )
 
 func init() {
@@ -46,9 +50,13 @@ func init() {
 
 	utilruntime.Must(knev1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+
+	// make manifests available to controllers package
+	controllers.VariantsFS = variantsFS
 }
 
 func main() {
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
