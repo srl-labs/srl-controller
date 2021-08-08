@@ -1,4 +1,4 @@
-module github.com/srl-labs/srl-kne-operator
+module github.com/srl-labs/kne-controller
 
 go 1.16
 

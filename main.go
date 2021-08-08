@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	knev1alpha1 "github.com/srl-labs/srl-kne-operator/api/v1alpha1"
-	"github.com/srl-labs/srl-kne-operator/controllers"
+	knev1alpha1 "github.com/srl-labs/kne-controller/api/v1alpha1"
+	"github.com/srl-labs/kne-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	knev1alpha1 "github.com/srl-labs/srl-kne-operator/api/v1alpha1"
+	knev1alpha1 "github.com/srl-labs/kne-controller/api/v1alpha1"
 )
 
 const (

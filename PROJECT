@@ -1,8 +1,8 @@
 domain: srlinux.dev
 layout:
 - go.kubebuilder.io/v3
-projectName: srl-kne-operator
-repo: github.com/srl-labs/srl-kne-operator
+projectName: kne-controller
+repo: github.com/srl-labs/kne-controller
 resources:
 - api:
     crdVersion: v1
@@ -11,6 +11,6 @@ resources:
   domain: srlinux.dev
   group: kne
   kind: Srlinux
-  path: github.com/srl-labs/srl-kne-operator/api/v1alpha1
+  path: github.com/srl-labs/kne-controller/api/v1alpha1
   version: v1alpha1
 version: "3"
