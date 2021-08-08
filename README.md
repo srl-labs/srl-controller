@@ -1,0 +1,1 @@
+This is a k8s controller for creating SR Linux nodes launched from [google/kne](https://github.com/google/kne).
