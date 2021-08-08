@@ -85,7 +85,7 @@ type SrlinuxReconciler struct {
 func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	var srlinux *knev1alpha1.Srlinux
+	var srlinux = &knev1alpha1.Srlinux{}
 	var err error
 	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
 		if errors.IsNotFound(err) {
@@ -126,7 +126,8 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: s.Name,
+			Name:      s.Name,
+			Namespace: s.Namespace,
 			Labels: map[string]string{
 				"app":  s.Name,
 				"topo": s.Namespace,
