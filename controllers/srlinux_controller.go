@@ -35,13 +35,32 @@ import (
 )
 
 const (
-	InitContainerName = "networkop/init-wait:latest"
+	InitContainerName        = "networkop/init-wait:latest"
+	defaultSrlinuxVariant    = "ixrd2"
+	variantsVolName          = "variants"
+	variantsVolMntPath       = "/tmp/topo"
+	topomacVolName           = "topomac-script"
+	topomacVolMntPath        = "/tmp/topomac"
+	variantsTemplateTempName = "topo-template.yml"
 )
 
-var defaultConstraints = map[string]string{
-	"cpu":    "0.5",
-	"memory": "1Gi",
-}
+var (
+	defaultConstraints = map[string]string{
+		"cpu":    "0.5",
+		"memory": "1Gi",
+	}
+	srlinuxImage = "ghcr.io/nokia/srlinux"
+	defaultCmd   = []string{"/tini", "--"}
+	defaultArgs  = []string{
+		"fixuid",
+		"-q",
+		"/entrypoint.sh",
+		"sudo",
+		"bash",
+		"-c",
+		"bash /tmp/topomac/topomac.sh && touch /.dockerenv && /opt/srlinux/bin/sr_linux",
+	}
+)
 
 // SrlinuxReconciler reconciles a Srlinux object
 type SrlinuxReconciler struct {
@@ -125,14 +144,24 @@ func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
 			}},
 			Containers: []corev1.Container{{
 				Name:            s.Name,
-				Image:           s.Spec.Config.Image,
-				Command:         s.Spec.Config.Command,
-				Args:            s.Spec.Config.Args,
+				Image:           srlinuxImage,
+				Command:         defaultCmd,
+				Args:            defaultArgs,
 				Env:             knenode.ToEnvVar(s.Spec.Config.Env),
 				Resources:       knenode.ToResourceRequirements(defaultConstraints),
 				ImagePullPolicy: "IfNotPresent",
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: pointer.Bool(true),
+				},
+				VolumeMounts: []corev1.VolumeMount{
+					{
+						Name:      variantsVolName,
+						MountPath: variantsVolMntPath,
+					},
+					{
+						Name:      topomacVolName,
+						MountPath: topomacVolMntPath,
+					},
 				},
 			}},
 			TerminationGracePeriodSeconds: pointer.Int64(0),
@@ -154,28 +183,37 @@ func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
 					}},
 				},
 			},
+			Volumes: []corev1.Volume{
+				{
+					Name: variantsVolName,
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "srlinux-variants",
+							},
+							Items: []corev1.KeyToPath{
+								{
+									Key:  defaultSrlinuxVariant,
+									Path: variantsTemplateTempName,
+								},
+							},
+						},
+					},
+				},
+				{
+					Name: topomacVolName,
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "srl-topomac-script",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
-	// if pb.Config.ConfigData != nil {
-	// 	pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-	// 		Name: "startup-config-volume",
-	// 		VolumeSource: corev1.VolumeSource{
-	// 			ConfigMap: &corev1.ConfigMapVolumeSource{
-	// 				LocalObjectReference: corev1.LocalObjectReference{
-	// 					Name: fmt.Sprintf("%s-config", pb.Name),
-	// 				},
-	// 			},
-	// 		},
-	// 	})
-	// 	for i, c := range pod.Spec.Containers {
-	// 		pod.Spec.Containers[i].VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
-	// 			Name:      "startup-config-volume",
-	// 			MountPath: pb.Config.ConfigPath + "/" + pb.Config.ConfigFile,
-	// 			SubPath:   pb.Config.ConfigFile,
-	// 			ReadOnly:  true,
-	// 		})
-	// 	}
-	// }
+
 	ctrl.SetControllerReference(s, pod, r.Scheme)
 	return pod
 }
