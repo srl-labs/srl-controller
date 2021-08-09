@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	knev1alpha1 "github.com/srl-labs/kne-controller/api/v1alpha1"
+	typesv1alpha1 "github.com/srl-labs/kne-controller/api/types/v1alpha1"
 	"github.com/srl-labs/kne-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -48,7 +48,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(knev1alpha1.AddToScheme(scheme))
+	utilruntime.Must(typesv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 	// make manifests available to controllers package

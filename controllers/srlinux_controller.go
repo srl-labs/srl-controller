@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	knev1alpha1 "github.com/srl-labs/kne-controller/api/v1alpha1"
+	typesv1alpha1 "github.com/srl-labs/kne-controller/api/types/v1alpha1"
 )
 
 const (
@@ -95,7 +95,7 @@ type SrlinuxReconciler struct {
 func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	var srlinux = &knev1alpha1.Srlinux{}
+	var srlinux = &typesv1alpha1.Srlinux{}
 	var err error
 	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
 		if errors.IsNotFound(err) {
@@ -147,7 +147,7 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 // podForSrlinux returns a srlinux Pod object
-func (r *SrlinuxReconciler) podForSrlinux(s *knev1alpha1.Srlinux) *corev1.Pod {
+func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.Name,
@@ -292,7 +292,7 @@ func createConfigMapsIfNeeded(ctx context.Context, r *SrlinuxReconciler, ns stri
 // SetupWithManager sets up the controller with the Manager.
 func (r *SrlinuxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&knev1alpha1.Srlinux{}).
+		For(&typesv1alpha1.Srlinux{}).
 		Owns(&corev1.Pod{}).
 		Complete(r)
 }
