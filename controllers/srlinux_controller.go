@@ -20,6 +20,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	knenode "github.com/google/kne/topo/node"
@@ -132,6 +133,16 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	// updating Srlinux status
+	if !reflect.DeepEqual(found.Spec.Containers[0].Image, srlinux.Status.Image) {
+		log.Info("Updating srlinux image status to", "image", found.Spec.Containers[0].Image)
+		srlinux.Status.Image = found.Spec.Containers[0].Image
+		err = r.Status().Update(ctx, srlinux)
+		if err != nil {
+			log.Error(err, "Failed to update Srlinux status")
+			return ctrl.Result{}, err
+		}
+	}
 	return ctrl.Result{}, nil
 }
 

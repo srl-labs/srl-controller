@@ -31,14 +31,16 @@ type SrlinuxSpec struct {
 
 // SrlinuxStatus defines the observed state of Srlinux
 type SrlinuxStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Image used to run srlinux pod
+	Image string `json:"image,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
 // Srlinux is the Schema for the srlinuxes API
+//+kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type Srlinux struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -16,7 +16,14 @@ spec:
     singular: srlinux
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.image
+      name: Image
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Srlinux is the Schema for the srlinuxes API
@@ -71,6 +78,10 @@ spec:
             type: object
           status:
             description: SrlinuxStatus defines the observed state of Srlinux
+            properties:
+              image:
+                description: Image used to run srlinux pod
+                type: string
             type: object
         type: object
     served: true
