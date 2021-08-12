@@ -1,7 +1,7 @@
 domain: srlinux.dev
 layout:
 - go.kubebuilder.io/v3
-projectName: kne-controller
+projectName: srlinux-controller
 repo: github.com/srl-labs/kne-controller
 resources:
 - api:
