@@ -1,0 +1,15 @@
+# this config maps contains an entrypoint script that ensures that we first call the
+# topomac script before executing the main entrypoint
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srlinux-kne-entrypoint
+data:
+  kne-entrypoint.sh: |
+    #!/bin/bash
+    # this entrypoint ensures that we call topomac script before executing the main entrypoint
+
+    #!/bin/bash
+
+    sudo bash /tmp/topomac/topomac.sh
+    exec /entrypoint.sh "$@"
