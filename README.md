@@ -35,6 +35,45 @@ To uninstall the controller from the cluster:
 kubectl delete -k https://github.com/srl-labs/kne-controller.git/config/default
 ```
 
+## Testing with `kind`
+To run this controller in a test cluster deployed with [`kind`](https://kind.sigs.k8s.io/) follow the steps outlined below.
+
+1. Install `kind`
+2. Clone and enter into [google/kne](https://github.com/google/kne) repo.
+3. Build the kne cli with  
+   `cd kne_cli && go build -o kne && chmod +x ./kne && mv ./kne /usr/local/bin`
+4. deploy kind cluster and the necessary CNI with `kne deploy deploy/kne/kind.yaml` where the path to `kind.yaml` is a relative path inside the kne repo.
+
+This will install the `kind` cluster named `kne` with `meshnet-cni` and `metallb`.
+
+`kind` clusters use `ptp` cni plugins which install the route in the pods default netns to implement the routing behavior. This will not work with SR Linux pods, as their management network is not using the default namespace as explained [here](https://github.com/kubernetes-sigs/kind/issues/2444).
+
+To overcome the mismatch between `ptp` expectations and SR Linux netns slicing the users need to make changes to the CNI chaining used by `kind` and swap ptp plugin with bridge plugin. To do this, you need to execute the [following script](https://gist.github.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091) on kind cluster:
+
+```
+docker exec kne-control-plane bash -c "curl https://gist.githubusercontent.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091/raw/5b4cab0a8f00d23e55dec924233dd4a1acaebc88/bridge.sh | /bin/bash"
+```
+
+The script must be executed without errors.
+
+Before proceeding a quick test may be run to verify that SR Linux pods can communicate with the bridge plugin:
+
+```bash
+# apply this manifest https://gist.github.com/hellt/43cfade6178be32ea7dfa5cb64715822
+# which has two srlinux pods and two linux pods
+kubectl apply -f https://gist.githubusercontent.com/hellt/43cfade6178be32ea7dfa5cb64715822/raw/847a10a57dca996432be7c4a9743c0e0c5b75814/srl.yml
+
+# once the pods are deployed and running, verify that srlinux pods can reach each other with ssh
+# check what IP the srl2 has
+kubectl exec -it srl1 -- ip netns exec srbase-mgmt ssh admin@10.244.0.7
+admin@10.244.0.7's password: 
+Last login: Fri Sep 24 13:58:05 2021 from 10.244.0.6
+Using configuration file(s): ['/etc/opt/srlinux/srlinux.rc']
+Welcome to the srlinux CLI.
+Type 'help' (and press <ENTER>) if you need any help using this.
+--{ [FACTORY] running }--[  ]--   
+```
+
 ## Controller operations
 The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://github.com/srl-labs/kne-controller/blob/main/config/crd/bases/kne.srlinux.dev_srlinuxes.yaml).
 
