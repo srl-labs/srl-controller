@@ -3,5 +3,3 @@ kind: Srlinux
 metadata:
   name: srlinux-sample
 spec:
-  # Add fields here
-  foo: bar

@@ -50,6 +50,11 @@ const (
 	topomacVolName    = "topomac-script"
 	topomacVolMntPath = "/tmp/topomac"
 	topomacCfgMapName = "srlinux-topomac-script"
+
+	entrypointVolName       = "kne-entrypoint"
+	entrypointVolMntPath    = "/kne-entrypoint.sh"
+	entrypointVolMntSubPath = "kne-entrypoint.sh"
+	entrypointCfgMapName    = "srlinux-kne-entrypoint"
 )
 
 var (
@@ -58,15 +63,17 @@ var (
 		"memory": "1Gi",
 	}
 	srlinuxImage = "ghcr.io/nokia/srlinux"
-	defaultCmd   = []string{"/tini", "--"}
-	defaultArgs  = []string{
+	defaultCmd   = []string{
+		"/tini",
+		"--",
 		"fixuid",
 		"-q",
-		"/entrypoint.sh",
+		"/kne-entrypoint.sh"}
+	defaultArgs = []string{
 		"sudo",
 		"bash",
 		"-c",
-		"bash /tmp/topomac/topomac.sh && touch /.dockerenv && /opt/srlinux/bin/sr_linux",
+		"touch /.dockerenv && /opt/srlinux/bin/sr_linux",
 	}
 
 	VariantsFS embed.FS
@@ -149,6 +156,11 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 // podForSrlinux returns a srlinux Pod object
 func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod {
+	if s.Spec.Config.Env == nil {
+		s.Spec.Config.Env = map[string]string{}
+	}
+	s.Spec.Config.Env["SRLINUX"] = "1" // set default srlinux env var
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.Name,
@@ -178,6 +190,7 @@ func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod 
 				ImagePullPolicy: "IfNotPresent",
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: pointer.Bool(true),
+					RunAsUser:  pointer.Int64(0),
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{
@@ -187,6 +200,11 @@ func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod 
 					{
 						Name:      topomacVolName,
 						MountPath: topomacVolMntPath,
+					},
+					{
+						Name:      entrypointVolName,
+						MountPath: entrypointVolMntPath,
+						SubPath:   entrypointVolMntSubPath,
 					},
 				},
 			}},
@@ -233,6 +251,17 @@ func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod 
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: topomacCfgMapName,
 							},
+						},
+					},
+				},
+				{
+					Name: entrypointVolName,
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: entrypointCfgMapName,
+							},
+							DefaultMode: pointer.Int32(0777),
 						},
 					},
 				},
@@ -287,6 +316,28 @@ func createConfigMapsIfNeeded(ctx context.Context, r *SrlinuxReconciler, ns stri
 			return err
 		}
 	}
+
+	// Check if the kne-entrypoint cfg map already exists, if not create a new one
+	cfgMap = &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: entrypointCfgMapName, Namespace: ns}, cfgMap)
+	if err != nil && errors.IsNotFound(err) {
+		log.Info("Creating a new kne-entrypoint configmap")
+		data, err := VariantsFS.ReadFile("manifests/variants/kne-entrypoint.yml")
+		if err != nil {
+			return err
+		}
+		decoder := serializer.NewCodecFactory(clientgoscheme.Scheme).UniversalDecoder()
+		err = runtime.DecodeInto(decoder, data, cfgMap)
+		if err != nil {
+			return err
+		}
+		cfgMap.ObjectMeta.Namespace = ns
+		err = r.Create(ctx, cfgMap)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
