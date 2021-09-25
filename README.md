@@ -51,7 +51,7 @@ This will install the `kind` cluster named `kne` with `meshnet-cni` and `metallb
 To overcome the mismatch between `ptp` expectations and SR Linux netns slicing the users need to make changes to the CNI chaining used by `kind` and swap ptp plugin with bridge plugin. To do this, you need to execute the [following script](https://gist.github.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091) on kind cluster:
 
 ```
-docker exec kne-control-plane bash -c "curl https://gist.githubusercontent.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091/raw/5b4cab0a8f00d23e55dec924233dd4a1acaebc88/bridge.sh | /bin/bash"
+docker exec kne-control-plane bash -c "curl https://gist.githubusercontent.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091/raw/8f45ad34f60b6128af78b4766aa4cae7b54bf881/bridge.sh | /bin/bash"
 ```
 
 The script must be executed without errors.
