@@ -42,21 +42,19 @@ To run this controller in a test cluster deployed with [`kind`](https://kind.sig
 2. Clone and enter into [google/kne](https://github.com/google/kne) repo.
 3. Build the kne cli with  
    `cd kne_cli && go build -o kne && chmod +x ./kne && mv ./kne /usr/local/bin`
-4. deploy kind cluster and the necessary CNI with `kne deploy deploy/kne/kind.yaml` where the path to `kind.yaml` is a relative path inside the kne repo.
+4. deploy kind cluster and the necessary CNI with `kne deploy deploy/kne/kind.yaml` where the path to `kind.yaml` is a relative path from the root of the kne repo.
 
-This will install the `kind` cluster named `kne` with `meshnet-cni` and `metallb`.
+This will install the `kind` cluster named `kne` with [`meshnet-cni`](https://github.com/networkop/meshnet-cni) and [`metallb`](https://metallb.universe.tf/).
 
-`kind` clusters use `ptp` cni plugins which install the route in the pods default netns to implement the routing behavior. This will not work with SR Linux pods, as their management network is not using the default namespace as explained [here](https://github.com/kubernetes-sigs/kind/issues/2444).
+`kind` clusters use `ptp` cni plugin which installs a route in the pods default netns to implement the routing behavior. This will not work with SR Linux pods, as their management network is not using the default namespace as explained [here](https://github.com/kubernetes-sigs/kind/issues/2444).
 
-To overcome the mismatch between `ptp` expectations and SR Linux netns slicing the users need to make changes to the CNI chaining used by `kind` and swap ptp plugin with bridge plugin. To do this, you need to execute the [following script](https://gist.github.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091) on kind cluster:
+To workaround the mismatch between `ptp` plugin expectations and SR Linux netns implementation the kne users need to make changes to the CNI chaining and swap `ptp` plugin with `bridge` plugin. To do this execute the [following script](https://gist.github.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091) on a kind cluster control plane node:
 
 ```
 docker exec kne-control-plane bash -c "curl https://gist.githubusercontent.com/hellt/806e6cc8d6ae49e2958f11b4a1fc3091/raw/8f45ad34f60b6128af78b4766aa4cae7b54bf881/bridge.sh | /bin/bash"
 ```
 
-The script must be executed without errors.
-
-Before proceeding a quick test may be run to verify that SR Linux pods can communicate with the bridge plugin:
+Before proceeding a quick test may be performed to verify that SR Linux pods can communicate over the newly installed bridge plugin:
 
 ```bash
 # apply this manifest https://gist.github.com/hellt/43cfade6178be32ea7dfa5cb64715822
