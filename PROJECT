@@ -1,16 +1,16 @@
 domain: srlinux.dev
 layout:
-- go.kubebuilder.io/v3
+  - go.kubebuilder.io/v3
 projectName: srlinux-controller
-repo: github.com/srl-labs/kne-controller
+repo: github.com/srl-labs/srl-controller
 resources:
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: srlinux.dev
-  group: kne
-  kind: Srlinux
-  path: github.com/srl-labs/kne-controller/api/v1alpha1
-  version: v1alpha1
+  - api:
+      crdVersion: v1
+      namespaced: true
+    controller: true
+    domain: srlinux.dev
+    group: kne
+    kind: Srlinux
+    path: github.com/srl-labs/srl-controller/api/v1alpha1
+    version: v1alpha1
 version: "3"

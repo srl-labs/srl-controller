@@ -1,4 +1,4 @@
-module github.com/srl-labs/kne-controller
+module github.com/srl-labs/srl-controller
 
 go 1.16
 

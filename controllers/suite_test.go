@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	typesv1alpha1 "github.com/srl-labs/kne-controller/api/types/v1alpha1"
+	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

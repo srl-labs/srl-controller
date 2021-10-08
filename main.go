@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	typesv1alpha1 "github.com/srl-labs/kne-controller/api/types/v1alpha1"
-	"github.com/srl-labs/kne-controller/controllers"
+	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	"github.com/srl-labs/srl-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

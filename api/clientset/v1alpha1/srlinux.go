@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 
-	typesv1alpha1 "github.com/srl-labs/kne-controller/api/types/v1alpha1"
+	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
 )
 
 // SrlinuxInterface provides access to the Srlinux CRD.

@@ -3,7 +3,7 @@ This is a k8s controller for creating SR Linux nodes launched from [google/kne](
 ## Install
 To install the latest version of this controller on a cluster referenced in `~/.kube/config` issue the following command:
 ```
-kubectl apply -k https://github.com/srl-labs/kne-controller.git/config/default
+kubectl apply -k https://github.com/srl-labs/srl-controller.git/config/default
 ```
 
 The resources of this controller will be scoped under `srlinux-controller` namespace.
@@ -26,13 +26,13 @@ replicaset.apps/srlinux-controller-controller-manager-c7495dcc7   1         1   
 ### Installing from a repo
 If this repo is cloned, the controller can be installed via make target:
 ```
-make deploy IMG=ghcr.io/srl-labs/srl-kne-controller:latest
+make deploy IMG=ghcr.io/srl-labs/srl-controller:latest
 ```
 
 ## Uninstall
 To uninstall the controller from the cluster:
 ```
-kubectl delete -k https://github.com/srl-labs/kne-controller.git/config/default
+kubectl delete -k https://github.com/srl-labs/srl-controller.git/config/default
 ```
 
 ## Testing with `kind`
@@ -93,7 +93,7 @@ service-r3   LoadBalancer   10.96.159.220   172.19.0.52   443:30015/TCP,22:30016
 To connect with SSH to r1 node, use `ssh admin@172.19.0.50` command.
 
 ## Controller operations
-The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://github.com/srl-labs/kne-controller/blob/main/config/crd/bases/kne.srlinux.dev_srlinuxes.yaml).
+The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://github.com/srl-labs/srl-controller/blob/main/config/crd/bases/kne.srlinux.dev_srlinuxes.yaml).
 
 The request to create/delete a resource of kind `Srlinux` is typically coming from `google/kne` topology.
 
@@ -109,7 +109,7 @@ When a request to create an `Srlinux` resource named `r1` in namespace `ns` come
 When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
 
 ### API access
-This repo contains a [clientset](https://github.com/srl-labs/kne-controller/blob/645f4c69e888a7aa5f5e87e71e8dde9ec9408620/api/clientset/v1alpha1/srlinux.go) for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/google/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
+This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/google/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
 
 ## Known limitations and the state of development
 As of current version `v0.0.0-alpha5` the controller doesn't take into account the node configuration data that might be provided in the kne Topology definition for Srlinux nodes. Instead, the following defaults are used:
