@@ -269,7 +269,8 @@ func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod 
 		},
 	}
 
-	ctrl.SetControllerReference(s, pod, r.Scheme)
+	_ = ctrl.SetControllerReference(s, pod, r.Scheme)
+
 	return pod
 }
 

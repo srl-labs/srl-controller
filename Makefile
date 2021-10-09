@@ -106,3 +106,6 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+ci-lint: # linting with golang-ci lint
+	docker run -it --rm -v $$(pwd):/app -w /app golangci/golangci-lint:latest  golangci-lint run -v --timeout 2m
