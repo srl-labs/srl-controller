@@ -110,9 +110,4 @@ When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
 This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/google/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
 
 ## Known limitations and the state of development
-As of current version `v0.0.0-alpha5` the controller doesn't take into account the node configuration data that might be provided in the kne Topology definition for Srlinux nodes. Instead, the following defaults are used:
-
-* pod image: ghcr.io/nokia/srlinux
-* command: `/tini --`
-* command args: `fixuid -q /entrypoint.sh sudo bash -c "bash /tmp/topomac/topomac.sh && touch /.dockerenv && /opt/srlinux/bin/sr_linux"`
-* sleep time before booting the pod: 0s
+* startup configuration provisioning is not yet possible

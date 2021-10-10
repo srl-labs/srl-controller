@@ -41,7 +41,6 @@ import (
 
 const (
 	InitContainerName        = "networkop/init-wait:latest"
-	defaultSrlinuxVariant    = "ixrd2"
 	variantsVolName          = "variants"
 	variantsVolMntPath       = "/tmp/topo"
 	variantsTemplateTempName = "topo-template.yml"
@@ -58,24 +57,6 @@ const (
 )
 
 var (
-	defaultConstraints = map[string]string{
-		"cpu":    "0.5",
-		"memory": "1Gi",
-	}
-	srlinuxImage = "ghcr.io/nokia/srlinux"
-	defaultCmd   = []string{
-		"/tini",
-		"--",
-		"fixuid",
-		"-q",
-		"/kne-entrypoint.sh"}
-	defaultArgs = []string{
-		"sudo",
-		"bash",
-		"-c",
-		"touch /.dockerenv && /opt/srlinux/bin/sr_linux",
-	}
-
 	VariantsFS embed.FS
 )
 
@@ -156,6 +137,7 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 // podForSrlinux returns a srlinux Pod object
 func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod {
+
 	if s.Spec.Config.Env == nil {
 		s.Spec.Config.Env = map[string]string{}
 	}
@@ -182,11 +164,11 @@ func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod 
 			}},
 			Containers: []corev1.Container{{
 				Name:            s.Name,
-				Image:           srlinuxImage,
-				Command:         defaultCmd,
-				Args:            defaultArgs,
+				Image:           s.Spec.GetImage(),
+				Command:         s.Spec.Config.GetCommand(),
+				Args:            s.Spec.Config.GetArgs(),
 				Env:             knenode.ToEnvVar(s.Spec.Config.Env),
-				Resources:       knenode.ToResourceRequirements(defaultConstraints),
+				Resources:       knenode.ToResourceRequirements(s.Spec.GetConstraints()),
 				ImagePullPolicy: "IfNotPresent",
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: pointer.Bool(true),
@@ -237,7 +219,7 @@ func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod 
 							},
 							Items: []corev1.KeyToPath{
 								{
-									Key:  defaultSrlinuxVariant,
+									Key:  s.Spec.GetModel(),
 									Path: variantsTemplateTempName,
 								},
 							},
