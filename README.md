@@ -110,4 +110,5 @@ When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
 This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/google/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
 
 ## Known limitations and the state of development
+
 * startup configuration provisioning is not yet possible
