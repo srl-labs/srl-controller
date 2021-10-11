@@ -2,8 +2,12 @@ This is a k8s controller for creating SR Linux nodes launched from [google/kne](
 
 ## Install
 To install the latest version of this controller on a cluster referenced in `~/.kube/config` issue the following command:
-```
-kubectl apply -k https://github.com/srl-labs/srl-controller.git/config/default
+```bash
+# latest version
+kubectl apply -k https://github.com/srl-labs/srl-controller/config/default
+
+# specific version
+kubectl apply -k https://github.com/srl-labs/srl-controller/config/default?ref=v0.2.0
 ```
 
 The resources of this controller will be scoped under `srlinux-controller` namespace.
@@ -110,9 +114,5 @@ When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
 This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/google/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
 
 ## Known limitations and the state of development
-As of current version `v0.0.0-alpha5` the controller doesn't take into account the node configuration data that might be provided in the kne Topology definition for Srlinux nodes. Instead, the following defaults are used:
 
-* pod image: ghcr.io/nokia/srlinux
-* command: `/tini --`
-* command args: `fixuid -q /entrypoint.sh sudo bash -c "bash /tmp/topomac/topomac.sh && touch /.dockerenv && /opt/srlinux/bin/sr_linux"`
-* sleep time before booting the pod: 0s
+* startup configuration provisioning is not yet possible

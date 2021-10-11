@@ -159,5 +159,5 @@ func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts meta
 }
 
 func init() {
-	typesv1alpha1.AddToScheme(scheme.Scheme)
+	_ = typesv1alpha1.AddToScheme(scheme.Scheme)
 }

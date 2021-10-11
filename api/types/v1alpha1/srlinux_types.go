@@ -25,8 +25,11 @@ type SrlinuxSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Config        *NodeConfig `json:"config,omitempty"`
-	NumInterfaces int         `json:"num-interfaces,omitempty"`
+	Config        *NodeConfig       `json:"config,omitempty"`
+	NumInterfaces int               `json:"num-interfaces,omitempty"`
+	Constraints   map[string]string `json:"constraints,omitempty"`
+	Model         string            `json:"model,omitempty"`
+	Version       string            `json:"version,omitempty"`
 }
 
 // SrlinuxStatus defines the observed state of Srlinux
@@ -60,4 +63,43 @@ type SrlinuxList struct {
 
 func init() {
 	SchemeBuilder.Register(&Srlinux{}, &SrlinuxList{})
+}
+
+func (s *SrlinuxSpec) GetConfig() *NodeConfig {
+	if s.Config != nil {
+		return s.Config
+	}
+
+	return nil
+}
+
+func (s *SrlinuxSpec) GetConstraints() map[string]string {
+	if s.Constraints != nil {
+		return s.Constraints
+	}
+
+	return defaultConstraints
+}
+
+func (s *SrlinuxSpec) GetModel() string {
+	if s.Model != "" {
+		return s.Model
+	}
+
+	return defaultSrlinuxVariant
+}
+
+// GetImage returns the srlinux container image name that is used in pod spec
+// if Config.Image is provided it takes precedence over all other option
+// if not, the Spec.Version is used as a tag for public container image ghcr.io/nokia/srlinux
+func (s *SrlinuxSpec) GetImage() string {
+	if s.GetConfig().Image != "" {
+		return s.GetConfig().Image
+	}
+
+	if s.Version != "" {
+		return defaultSRLinuxImageName + ":" + s.Version
+	}
+
+	return defaultSRLinuxImageName
 }

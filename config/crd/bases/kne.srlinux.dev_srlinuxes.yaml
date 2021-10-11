@@ -49,6 +49,22 @@ spec:
                     items:
                       type: string
                     type: array
+                  cert:
+                    properties:
+                      cert_name:
+                        description: Certificate name on the node.
+                        type: string
+                      common_name:
+                        description: Common name to set in the cert.
+                        type: string
+                      key_name:
+                        description: Key name on the node.
+                        type: string
+                      key_size:
+                        description: RSA keysize to use for key generation.
+                        format: int32
+                        type: integer
+                    type: object
                   command:
                     items:
                       type: string
@@ -73,8 +89,16 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              constraints:
+                additionalProperties:
+                  type: string
+                type: object
+              model:
+                type: string
               num-interfaces:
                 type: integer
+              version:
+                type: string
             type: object
           status:
             description: SrlinuxStatus defines the observed state of Srlinux
