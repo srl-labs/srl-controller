@@ -2,8 +2,12 @@ This is a k8s controller for creating SR Linux nodes launched from [google/kne](
 
 ## Install
 To install the latest version of this controller on a cluster referenced in `~/.kube/config` issue the following command:
-```
+```bash
+# latest version
 kubectl apply -k https://github.com/srl-labs/srl-controller.git/config/default
+
+# specific version
+kubectl apply -k https://github.com/srl-labs/srl-controller.git/config/default?ref=v0.2.0
 ```
 
 The resources of this controller will be scoped under `srlinux-controller` namespace.
