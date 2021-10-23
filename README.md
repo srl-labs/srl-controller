@@ -1,4 +1,4 @@
-This is a k8s controller for creating SR Linux nodes launched from [google/kne](https://github.com/google/kne) topology.
+This is a k8s controller for running and managing SR Linux nodes launched from [google/kne](https://github.com/google/kne) topology.
 
 ## Install
 To install the latest version of this controller on a cluster referenced in `~/.kube/config` issue the following command:
@@ -7,7 +7,7 @@ To install the latest version of this controller on a cluster referenced in `~/.
 kubectl apply -k https://github.com/srl-labs/srl-controller/config/default
 
 # specific version
-kubectl apply -k https://github.com/srl-labs/srl-controller/config/default?ref=v0.2.0
+kubectl apply -k https://github.com/srl-labs/srl-controller/config/default?ref=v0.2.1
 ```
 
 The resources of this controller will be scoped under `srlinux-controller` namespace.
@@ -28,15 +28,17 @@ replicaset.apps/srlinux-controller-controller-manager-c7495dcc7   1         1   
 ```
 
 ### Installing from a repo
-If this repo is cloned, the controller can be installed via make target:
+If this repo is cloned, the controller can be installed with make:
 ```
-make deploy IMG=ghcr.io/srl-labs/srl-controller:latest
+make deploy IMG=ghcr.io/srl-labs/srl-controller:0.2.1
 ```
+
+Make sure to check which controller versions are [available](https://github.com/srl-labs/srl-controller/pkgs/container/srl-controller/versions)
 
 ## Uninstall
 To uninstall the controller from the cluster:
 ```
-kubectl delete -k https://github.com/srl-labs/srl-controller.git/config/default
+kubectl delete -k https://github.com/srl-labs/srl-controller/config/default
 ```
 
 ## Testing with `kind`
@@ -95,7 +97,7 @@ service-r3   LoadBalancer   10.96.159.220   172.19.0.52   443:30015/TCP,22:30016
 To connect with SSH to r1 node, use `ssh admin@172.19.0.50` command.
 
 ## Controller operations
-The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://github.com/srl-labs/srl-controller/blob/main/config/crd/bases/kne.srlinux.dev_srlinuxes.yaml).
+The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://doc.crds.dev/github.com/srl-labs/srl-controller).
 
 The request to create/delete a resource of kind `Srlinux` is typically coming from `google/kne` topology.
 
