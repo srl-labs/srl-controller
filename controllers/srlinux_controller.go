@@ -54,6 +54,10 @@ const (
 	entrypointVolMntPath    = "/kne-entrypoint.sh"
 	entrypointVolMntSubPath = "kne-entrypoint.sh"
 	entrypointCfgMapName    = "srlinux-kne-entrypoint"
+
+	// default path to a startup config file
+	// the default for config file name resides within kne
+	defaultConfigPath = "/etc/opt/srlinux"
 )
 
 var (
@@ -108,7 +112,7 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, err
 		}
 		// Define a new srlinux pod
-		pod := r.podForSrlinux(srlinux)
+		pod := r.podForSrlinux(ctx, srlinux)
 		log.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 		err = r.Create(ctx, pod)
 		if err != nil {
@@ -136,7 +140,8 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 // podForSrlinux returns a srlinux Pod object
-func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod {
+func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.Srlinux) *corev1.Pod {
+	log := log.FromContext(ctx)
 
 	if s.Spec.Config.Env == nil {
 		s.Spec.Config.Env = map[string]string{}
@@ -249,6 +254,36 @@ func (r *SrlinuxReconciler) podForSrlinux(s *typesv1alpha1.Srlinux) *corev1.Pod 
 				},
 			},
 		},
+	}
+
+	// initialize config path and config file variables
+	cfgPath := defaultConfigPath
+	if p := s.Spec.GetConfig().ConfigPath; p != "" {
+		cfgPath = p
+	}
+
+	cfgFile := s.Spec.GetConfig().ConfigFile
+
+	// only create startup config mounts if the config data was set in kne
+	if s.Spec.Config.ConfigDataPresent {
+		log.Info("Adding volume for startup config to pod spec", "volume.name", "startup-config-volume", "mount.path", cfgPath+"/"+cfgFile)
+		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+			Name: "startup-config-volume",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: fmt.Sprintf("%s-config", s.Name),
+					},
+				},
+			},
+		})
+
+		pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      "startup-config-volume",
+			MountPath: cfgPath + "/" + cfgFile,
+			SubPath:   cfgFile,
+			ReadOnly:  true,
+		})
 	}
 
 	_ = ctrl.SetControllerReference(s, pod, r.Scheme)

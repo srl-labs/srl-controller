@@ -35,12 +35,14 @@ type NodeConfig struct {
 	Env map[string]string `json:"env,omitempty"`
 	// Specific entry point command for accessing the pod.
 	EntryCommand string `json:"entry_command,omitempty"`
-	// Mount point for configuration inside the pod.
+	// Mount point for configuration inside the pod. Should point to a dir that contains ConfigFile
 	ConfigPath string `json:"config_path,omitempty"`
-	// Default configuration file name for the pod.
-	ConfigFile string          `json:"config_file,omitempty"`
-	Cert       *CertificateCfg `json:"cert,omitempty"`
-	Sleep      uint32          `json:"sleep,omitempty"` // Sleeptime before starting the pod.
+	// Startup configuration file name for the pod. Set in the kne topo and created by kne as a config map
+	ConfigFile string `json:"config_file,omitempty"`
+	// When set to true by kne, srlinux controller will attempt to mount the file with startup config to the pod
+	ConfigDataPresent bool            `json:"config_data_present,omitempty"`
+	Cert              *CertificateCfg `json:"cert,omitempty"`
+	Sleep             uint32          `json:"sleep,omitempty"` // Sleeptime before starting the pod.
 }
 
 type CertificateCfg struct {
