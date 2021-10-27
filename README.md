@@ -7,7 +7,7 @@ To install the latest version of this controller on a cluster referenced in `~/.
 kubectl apply -k https://github.com/srl-labs/srl-controller/config/default
 
 # specific version
-kubectl apply -k https://github.com/srl-labs/srl-controller/config/default?ref=v0.2.1
+kubectl apply -k https://github.com/srl-labs/srl-controller/config/default?ref=v0.3.1
 ```
 
 The resources of this controller will be scoped under `srlinux-controller` namespace.
@@ -30,7 +30,7 @@ replicaset.apps/srlinux-controller-controller-manager-c7495dcc7   1         1   
 ### Installing from a repo
 If this repo is cloned, the controller can be installed with make:
 ```
-make deploy IMG=ghcr.io/srl-labs/srl-controller:0.2.1
+make deploy IMG=ghcr.io/srl-labs/srl-controller:0.3.1
 ```
 
 Make sure to check which controller versions are [available](https://github.com/srl-labs/srl-controller/pkgs/container/srl-controller/versions)
