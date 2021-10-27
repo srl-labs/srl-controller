@@ -69,11 +69,17 @@ spec:
                     items:
                       type: string
                     type: array
+                  config_data_present:
+                    description: When set to true by kne, srlinux controller will
+                      attempt to mount the file with startup config to the pod
+                    type: boolean
                   config_file:
-                    description: Default configuration file name for the pod.
+                    description: Startup configuration file name for the pod. Set
+                      in the kne topo and created by kne as a config map
                     type: string
                   config_path:
-                    description: Mount point for configuration inside the pod.
+                    description: Mount point for configuration inside the pod. Should
+                      point to a dir that contains ConfigFile
                     type: string
                   entry_command:
                     description: Specific entry point command for accessing the pod.
