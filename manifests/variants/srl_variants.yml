@@ -51,7 +51,7 @@ data:
         "card_type": 127
         "mda_type": 36
 
-  ixrd10: |
+  ixr10: |
     # ixr10
     chassis_configuration:
       "chassis_type": 43
