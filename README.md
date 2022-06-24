@@ -1,4 +1,4 @@
-This is a k8s controller for running and managing SR Linux nodes launched from [google/kne](https://github.com/google/kne) topology.
+This is a k8s controller for running and managing SR Linux nodes launched from [openconfig/kne](https://github.com/openconfig/kne) topology.
 
 ## Install
 To install the latest version of this controller on a cluster referenced in `~/.kube/config` issue the following command:
@@ -45,7 +45,7 @@ kubectl delete -k https://github.com/srl-labs/srl-controller/config/default
 To run this controller in a test cluster deployed with [`kind`](https://kind.sigs.k8s.io/) follow the steps outlined below.
 
 1. Install `kind`
-2. Clone and enter into [google/kne](https://github.com/google/kne) repo.
+2. Clone and enter into [openconfig/kne](https://github.com/google/kne) repo.
 3. Build the kne cli with  
    `cd kne_cli && go build -o kne && chmod +x ./kne && mv ./kne /usr/local/bin`
 4. deploy kind cluster and the necessary CNI with `kne deploy deploy/kne/kind.yaml` where the path to `kind.yaml` is a relative path from the root of the kne repo.
@@ -78,7 +78,7 @@ Type 'help' (and press <ENTER>) if you need any help using this.
 --{ [FACTORY] running }--[  ]--   
 ```
 
-If all works as expected a [demo topology with three SR Linux nodes](https://github.com/google/kne/blob/main/examples/3node-srl.pb.txt) may be deployed as follows:
+If all works as expected a [demo topology with three SR Linux nodes](https://github.com/openconfig/kne/blob/main/examples/3node-srl.pb.txt) may be deployed as follows:
 
 ```bash
 kne create ~/kne/examples/3node-srl.pb.txt
@@ -99,7 +99,7 @@ To connect with SSH to r1 node, use `ssh admin@172.19.0.50` command.
 ## Controller operations
 The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://doc.crds.dev/github.com/srl-labs/srl-controller).
 
-The request to create/delete a resource of kind `Srlinux` is typically coming from `google/kne` topology.
+The request to create/delete a resource of kind `Srlinux` is typically coming from `openconfig/kne` topology.
 
 ### Creation
 When a request to create an `Srlinux` resource named `r1` in namespace `ns` comes in, controller's reconcile loop does the following:
@@ -113,4 +113,4 @@ When a request to create an `Srlinux` resource named `r1` in namespace `ns` come
 When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
 
 ### API access
-This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/google/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
+This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/openconfig/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
