@@ -45,7 +45,7 @@ kubectl delete -k https://github.com/srl-labs/srl-controller/config/default
 To run this controller in a test cluster deployed with [`kind`](https://kind.sigs.k8s.io/) follow the steps outlined below.
 
 1. Install `kind`
-2. Clone and enter into [openconfig/kne](https://github.com/google/kne) repo.
+2. Clone and enter into [openconfig/kne](https://github.com/openconfig/kne) repo.
 3. Build the kne cli with  
    `cd kne_cli && go build -o kne && chmod +x ./kne && mv ./kne /usr/local/bin`
 4. deploy kind cluster and the necessary CNI with `kne deploy deploy/kne/kind.yaml` where the path to `kind.yaml` is a relative path from the root of the kne repo.
