@@ -106,3 +106,13 @@ When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
 
 ### API access
 This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/openconfig/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
+
+## Building srl-controller container image
+To build `srl-controller` container image execute:
+
+```bash
+# don't forget to set the correct tag
+make docker-build IMG=ghcr.io/srl-labs/srl-controller:${tag}
+```
+
+Then upload the image to the registry.
