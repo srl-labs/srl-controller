@@ -38,4 +38,3 @@ jobs:
         with:
           args: --config=./.github/workflows/linters/.golangci.yml
           version: "v1.47.2"
-          skip-go-installation: true
