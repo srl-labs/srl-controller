@@ -1,4 +1,4 @@
-// Clientset for SRLinux custom resource.
+// Package v1alpha is an v1alpha version of a Clientset for SR Linux customer resource.
 package v1alpha1
 
 // note to my future self: see https://www.martin-helmich.de/en/blog/kubernetes-crd-client.html for details
