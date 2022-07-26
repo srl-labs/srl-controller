@@ -1,4 +1,4 @@
-// Package v1alpha is an v1alpha version of a Clientset for SR Linux customer resource.
+// Package v1alpha1 is an v1alpha version of a Clientset for SR Linux customer resource.
 package v1alpha1
 
 // note to my future self: see https://www.martin-helmich.de/en/blog/kubernetes-crd-client.html for details
@@ -50,7 +50,7 @@ type Clientset struct {
 	restClient rest.Interface
 }
 
-var gvr = schema.GroupVersionResource{
+var gvr = schema.GroupVersionResource{ // nolint: gochecknoglobals
 	Group:    typesv1alpha1.GroupVersion.Group,
 	Version:  typesv1alpha1.GroupVersion.Version,
 	Resource: "srlinuxes",
@@ -63,21 +63,26 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	config.APIPath = "/apis"
 	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
+
 	dClient, err := dynamic.NewForConfig(c)
 	if err != nil {
 		return nil, err
 	}
+
 	dInterface := dClient.Resource(gvr)
+
 	rClient, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Clientset{
 		dInterface: dInterface,
 		restClient: rClient,
 	}, nil
 }
 
+// Srlinux initializes srlinuxClient struct which implements SrlinuxInterface.
 func (c *Clientset) Srlinux(namespace string) SrlinuxInterface {
 	return &srlinuxClient{
 		dInterface: c.dInterface,
@@ -92,6 +97,7 @@ type srlinuxClient struct {
 	ns         string
 }
 
+// List gets a list of SRLinux resources.
 func (s *srlinuxClient) List(
 	ctx context.Context,
 	opts metav1.ListOptions,
@@ -108,6 +114,7 @@ func (s *srlinuxClient) List(
 	return &result, err
 }
 
+// Get gets SRLinux resource.
 func (s *srlinuxClient) Get(
 	ctx context.Context,
 	name string,
@@ -126,6 +133,7 @@ func (s *srlinuxClient) Get(
 	return &result, err
 }
 
+// Create creates SRLinux resource.
 func (s *srlinuxClient) Create(
 	ctx context.Context,
 	srlinux *typesv1alpha1.Srlinux,
@@ -147,6 +155,7 @@ func (s *srlinuxClient) Watch(
 	opts metav1.ListOptions,
 ) (watch.Interface, error) {
 	opts.Watch = true
+
 	return s.restClient.
 		Get().
 		Namespace(s.ns).
@@ -155,10 +164,10 @@ func (s *srlinuxClient) Watch(
 		Watch(ctx)
 }
 
-func (t *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return t.restClient.
+func (s *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return s.restClient.
 		Delete().
-		Namespace(t.ns).
+		Namespace(s.ns).
 		Resource(gvr.Resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Name(name).
@@ -172,14 +181,17 @@ func (s *srlinuxClient) Update(
 	opts metav1.UpdateOptions,
 ) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
+
 	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
+
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to type assert return to srlinux")
 	}
+
 	return &result, nil
 }
 
