@@ -60,9 +60,7 @@ const (
 	defaultConfigPath = "/etc/opt/srlinux"
 )
 
-var (
-	VariantsFS embed.FS
-)
+var VariantsFS embed.FS
 
 // SrlinuxReconciler reconciles a Srlinux object
 type SrlinuxReconciler struct {
@@ -78,7 +76,7 @@ type SrlinuxReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
+// Modify the Reconcile function to compare the state specified by
 // the Srlinux object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -88,7 +86,7 @@ type SrlinuxReconciler struct {
 func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	var srlinux = &typesv1alpha1.Srlinux{}
+	srlinux := &typesv1alpha1.Srlinux{}
 	var err error
 	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
 		if errors.IsNotFound(err) {
