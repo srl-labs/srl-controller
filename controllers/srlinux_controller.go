@@ -56,13 +56,13 @@ const (
 	entrypointCfgMapName    = "srlinux-kne-entrypoint"
 
 	// default path to a startup config file
-	// the default for config file name resides within kne
+	// the default for config file name resides within kne.
 	defaultConfigPath = "/etc/opt/srlinux"
 )
 
 var VariantsFS embed.FS
 
-// SrlinuxReconciler reconciles a Srlinux object
+// SrlinuxReconciler reconciles a Srlinux object.
 type SrlinuxReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -137,7 +137,7 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-// podForSrlinux returns a srlinux Pod object
+// podForSrlinux returns a srlinux Pod object.
 func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.Srlinux) *corev1.Pod {
 	log := log.FromContext(ctx)
 
@@ -289,7 +289,7 @@ func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.
 	return pod
 }
 
-// createConfigMapsIfNeeded creates srlinux-variants and srlinux-topomac config maps which every srlinux pod needs to mount
+// createConfigMapsIfNeeded creates srlinux-variants and srlinux-topomac config maps which every srlinux pod needs to mount.
 func createConfigMapsIfNeeded(ctx context.Context, r *SrlinuxReconciler, ns string, log logr.Logger) error {
 	// Check if the variants cfg map already exists, if not create a new one
 	cfgMap := &corev1.ConfigMap{}

@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// SrlinuxSpec defines the desired state of Srlinux
+// SrlinuxSpec defines the desired state of Srlinux.
 type SrlinuxSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -32,7 +32,7 @@ type SrlinuxSpec struct {
 	Version       string            `json:"version,omitempty"`
 }
 
-// SrlinuxStatus defines the observed state of Srlinux
+// SrlinuxStatus defines the observed state of Srlinux.
 type SrlinuxStatus struct {
 	// Image used to run srlinux pod
 	Image string `json:"image,omitempty"`
@@ -54,7 +54,7 @@ type Srlinux struct {
 
 //+kubebuilder:object:root=true
 
-// SrlinuxList contains a list of Srlinux
+// SrlinuxList contains a list of Srlinux.
 type SrlinuxList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -91,7 +91,7 @@ func (s *SrlinuxSpec) GetModel() string {
 
 // GetImage returns the srlinux container image name that is used in pod spec
 // if Config.Image is provided it takes precedence over all other option
-// if not, the Spec.Version is used as a tag for public container image ghcr.io/nokia/srlinux
+// if not, the Spec.Version is used as a tag for public container image ghcr.io/nokia/srlinux.
 func (s *SrlinuxSpec) GetImage() string {
 	if s.GetConfig().Image != "" {
 		return s.GetConfig().Image
