@@ -114,7 +114,14 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		log.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 		err = r.Create(ctx, pod)
 		if err != nil {
-			log.Error(err, "Failed to create new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+			log.Error(
+				err,
+				"Failed to create new Pod",
+				"Pod.Namespace",
+				pod.Namespace,
+				"Pod.Name",
+				pod.Name,
+			)
 			return ctrl.Result{}, err
 		}
 		// Pod created successfully - return and requeue
@@ -138,7 +145,10 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 // podForSrlinux returns a srlinux Pod object.
-func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.Srlinux) *corev1.Pod {
+func (r *SrlinuxReconciler) podForSrlinux(
+	ctx context.Context,
+	s *typesv1alpha1.Srlinux,
+) *corev1.Pod {
 	log := log.FromContext(ctx)
 
 	if s.Spec.Config.Env == nil {
@@ -197,19 +207,21 @@ func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.
 			NodeSelector:                  map[string]string{},
 			Affinity: &corev1.Affinity{
 				PodAntiAffinity: &corev1.PodAntiAffinity{
-					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{{
-						Weight: 100,
-						PodAffinityTerm: corev1.PodAffinityTerm{
-							LabelSelector: &metav1.LabelSelector{
-								MatchExpressions: []metav1.LabelSelectorRequirement{{
-									Key:      "topo",
-									Operator: "In",
-									Values:   []string{s.Name},
-								}},
+					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+						{
+							Weight: 100,
+							PodAffinityTerm: corev1.PodAffinityTerm{
+								LabelSelector: &metav1.LabelSelector{
+									MatchExpressions: []metav1.LabelSelectorRequirement{{
+										Key:      "topo",
+										Operator: "In",
+										Values:   []string{s.Name},
+									}},
+								},
+								TopologyKey: "kubernetes.io/hostname",
 							},
-							TopologyKey: "kubernetes.io/hostname",
 						},
-					}},
+					},
 				},
 			},
 			Volumes: []corev1.Volume{
@@ -264,7 +276,13 @@ func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.
 
 	// only create startup config mounts if the config data was set in kne
 	if s.Spec.Config.ConfigDataPresent {
-		log.Info("Adding volume for startup config to pod spec", "volume.name", "startup-config-volume", "mount.path", cfgPath+"/"+cfgFile)
+		log.Info(
+			"Adding volume for startup config to pod spec",
+			"volume.name",
+			"startup-config-volume",
+			"mount.path",
+			cfgPath+"/"+cfgFile,
+		)
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
 			Name: "startup-config-volume",
 			VolumeSource: corev1.VolumeSource{
@@ -276,12 +294,15 @@ func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.
 			},
 		})
 
-		pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      "startup-config-volume",
-			MountPath: cfgPath + "/" + cfgFile,
-			SubPath:   cfgFile,
-			ReadOnly:  true,
-		})
+		pod.Spec.Containers[0].VolumeMounts = append(
+			pod.Spec.Containers[0].VolumeMounts,
+			corev1.VolumeMount{
+				Name:      "startup-config-volume",
+				MountPath: cfgPath + "/" + cfgFile,
+				SubPath:   cfgFile,
+				ReadOnly:  true,
+			},
+		)
 	}
 
 	_ = ctrl.SetControllerReference(s, pod, r.Scheme)
@@ -290,7 +311,12 @@ func (r *SrlinuxReconciler) podForSrlinux(ctx context.Context, s *typesv1alpha1.
 }
 
 // createConfigMapsIfNeeded creates srlinux-variants and srlinux-topomac config maps which every srlinux pod needs to mount.
-func createConfigMapsIfNeeded(ctx context.Context, r *SrlinuxReconciler, ns string, log logr.Logger) error {
+func createConfigMapsIfNeeded(
+	ctx context.Context,
+	r *SrlinuxReconciler,
+	ns string,
+	log logr.Logger,
+) error {
 	// Check if the variants cfg map already exists, if not create a new one
 	cfgMap := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: variantsCfgMapName, Namespace: ns}, cfgMap)
