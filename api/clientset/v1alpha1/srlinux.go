@@ -26,8 +26,17 @@ type SrlinuxInterface interface {
 	Create(ctx context.Context, srlinux *typesv1alpha1.Srlinux) (*typesv1alpha1.Srlinux, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
-	Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*typesv1alpha1.Srlinux, error)
+	Unstructured(
+		ctx context.Context,
+		name string,
+		opts metav1.GetOptions,
+		subresources ...string,
+	) (*unstructured.Unstructured, error)
+	Update(
+		ctx context.Context,
+		obj *unstructured.Unstructured,
+		opts metav1.UpdateOptions,
+	) (*typesv1alpha1.Srlinux, error)
 }
 
 // Interface is the clientset interface for srlinux.
@@ -83,7 +92,10 @@ type srlinuxClient struct {
 	ns         string
 }
 
-func (s *srlinuxClient) List(ctx context.Context, opts metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error) {
+func (s *srlinuxClient) List(
+	ctx context.Context,
+	opts metav1.ListOptions,
+) (*typesv1alpha1.SrlinuxList, error) {
 	result := typesv1alpha1.SrlinuxList{}
 	err := s.restClient.
 		Get().
@@ -96,7 +108,11 @@ func (s *srlinuxClient) List(ctx context.Context, opts metav1.ListOptions) (*typ
 	return &result, err
 }
 
-func (s *srlinuxClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*typesv1alpha1.Srlinux, error) {
+func (s *srlinuxClient) Get(
+	ctx context.Context,
+	name string,
+	opts metav1.GetOptions,
+) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 	err := s.restClient.
 		Get().
@@ -110,7 +126,10 @@ func (s *srlinuxClient) Get(ctx context.Context, name string, opts metav1.GetOpt
 	return &result, err
 }
 
-func (s *srlinuxClient) Create(ctx context.Context, srlinux *typesv1alpha1.Srlinux) (*typesv1alpha1.Srlinux, error) {
+func (s *srlinuxClient) Create(
+	ctx context.Context,
+	srlinux *typesv1alpha1.Srlinux,
+) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 	err := s.restClient.
 		Post().
@@ -123,7 +142,10 @@ func (s *srlinuxClient) Create(ctx context.Context, srlinux *typesv1alpha1.Srlin
 	return &result, err
 }
 
-func (s *srlinuxClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (s *srlinuxClient) Watch(
+	ctx context.Context,
+	opts metav1.ListOptions,
+) (watch.Interface, error) {
 	opts.Watch = true
 	return s.restClient.
 		Get().
@@ -144,7 +166,11 @@ func (t *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.Del
 		Error()
 }
 
-func (s *srlinuxClient) Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*typesv1alpha1.Srlinux, error) {
+func (s *srlinuxClient) Update(
+	ctx context.Context,
+	obj *unstructured.Unstructured,
+	opts metav1.UpdateOptions,
+) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
@@ -157,7 +183,12 @@ func (s *srlinuxClient) Update(ctx context.Context, obj *unstructured.Unstructur
 	return &result, nil
 }
 
-func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (s *srlinuxClient) Unstructured(
+	ctx context.Context,
+	name string,
+	opts metav1.GetOptions,
+	subresources ...string,
+) (*unstructured.Unstructured, error) {
 	return s.dInterface.Namespace(s.ns).Get(ctx, name, opts, subresources...)
 }
 

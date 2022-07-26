@@ -38,12 +38,12 @@ type SrlinuxStatus struct {
 	Image string `json:"image,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // Srlinux is the Schema for the srlinuxes API
-//+kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type Srlinux struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
