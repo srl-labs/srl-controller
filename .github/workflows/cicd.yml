@@ -23,30 +23,19 @@ jobs:
       - name: kubebuilder tests
         run: make test
 
-  staticcheck:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GOVER }}
-      - name: Staticcheck
-        run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          staticcheck ./...
-
-  golang-ci:
+  golang-ci-lint:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GOVER }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
-          args: --timeout=3m
+          args: --config=./.github/workflows/linters/.golangci.yml
+          version: "1.47.2"
           skip-go-installation: true

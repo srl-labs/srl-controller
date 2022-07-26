@@ -14,24 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers contains srlinux k8s/kne controller code
 package controllers
 
 import (
 	"context"
 	"embed"
-	"fmt"
 	"reflect"
 
-	"github.com/go-logr/logr"
-	knenode "github.com/openconfig/kne/topo/node"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -40,7 +34,7 @@ import (
 )
 
 const (
-	InitContainerName        = "networkop/init-wait:latest"
+	initContainerName        = "networkop/init-wait:latest"
 	variantsVolName          = "variants"
 	variantsVolMntPath       = "/tmp/topo"
 	variantsTemplateTempName = "topo-template.yml"
@@ -58,9 +52,15 @@ const (
 	// default path to a startup config file
 	// the default for config file name resides within kne.
 	defaultConfigPath = "/etc/opt/srlinux"
+
+	fileMode777 = 0o777
+
+	srlinuxPodAffinityWeight = 100
 )
 
-var VariantsFS embed.FS
+// VariantsFS is variable without fs assignment, since it is used in main.go
+// to assign a value for an fs that is in the outer scope of srlinux_controller.go.
+var VariantsFS embed.FS // nolint:gochecknoglobals
 
 // SrlinuxReconciler reconciles a Srlinux object.
 type SrlinuxReconciler struct {
@@ -87,6 +87,7 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	log := log.FromContext(ctx)
 
 	srlinux := &typesv1alpha1.Srlinux{}
+
 	var err error
 	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
 		if errors.IsNotFound(err) {
@@ -94,24 +95,28 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			log.Info("Srlinux resource not found. Ignoring since object must be deleted")
+
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
 		log.Error(err, "Failed to get Srlinux")
+
 		return ctrl.Result{}, err
 	}
 
 	// Check if the srlinux pod already exists, if not create a new one
 	found := &corev1.Pod{}
+
 	err = r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
-		err = createConfigMapsIfNeeded(ctx, r, srlinux.Namespace, log)
+		err = createConfigMaps(ctx, r, srlinux.Namespace, log)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 		// Define a new srlinux pod
 		pod := r.podForSrlinux(ctx, srlinux)
 		log.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+
 		err = r.Create(ctx, pod)
 		if err != nil {
 			log.Error(
@@ -124,10 +129,12 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			)
 			return ctrl.Result{}, err
 		}
+
 		// Pod created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
 		log.Error(err, "Failed to get Pod")
+
 		return ctrl.Result{}, err
 	}
 
@@ -138,249 +145,11 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		err = r.Status().Update(ctx, srlinux)
 		if err != nil {
 			log.Error(err, "Failed to update Srlinux status")
+
 			return ctrl.Result{}, err
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-// podForSrlinux returns a srlinux Pod object.
-func (r *SrlinuxReconciler) podForSrlinux(
-	ctx context.Context,
-	s *typesv1alpha1.Srlinux,
-) *corev1.Pod {
-	log := log.FromContext(ctx)
-
-	if s.Spec.Config.Env == nil {
-		s.Spec.Config.Env = map[string]string{}
-	}
-	s.Spec.Config.Env["SRLINUX"] = "1" // set default srlinux env var
-
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      s.Name,
-			Namespace: s.Namespace,
-			Labels: map[string]string{
-				"app":  s.Name,
-				"topo": s.Namespace,
-			},
-		},
-		Spec: corev1.PodSpec{
-			InitContainers: []corev1.Container{{
-				Name:  fmt.Sprintf("init-%s", s.Name),
-				Image: InitContainerName,
-				Args: []string{
-					fmt.Sprintf("%d", s.Spec.NumInterfaces+1),
-					fmt.Sprintf("%d", s.Spec.Config.Sleep),
-				},
-				ImagePullPolicy: "IfNotPresent",
-			}},
-			Containers: []corev1.Container{{
-				Name:            s.Name,
-				Image:           s.Spec.GetImage(),
-				Command:         s.Spec.Config.GetCommand(),
-				Args:            s.Spec.Config.GetArgs(),
-				Env:             knenode.ToEnvVar(s.Spec.Config.Env),
-				Resources:       knenode.ToResourceRequirements(s.Spec.GetConstraints()),
-				ImagePullPolicy: "IfNotPresent",
-				SecurityContext: &corev1.SecurityContext{
-					Privileged: pointer.Bool(true),
-					RunAsUser:  pointer.Int64(0),
-				},
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      variantsVolName,
-						MountPath: variantsVolMntPath,
-					},
-					{
-						Name:      topomacVolName,
-						MountPath: topomacVolMntPath,
-					},
-					{
-						Name:      entrypointVolName,
-						MountPath: entrypointVolMntPath,
-						SubPath:   entrypointVolMntSubPath,
-					},
-				},
-			}},
-			TerminationGracePeriodSeconds: pointer.Int64(0),
-			NodeSelector:                  map[string]string{},
-			Affinity: &corev1.Affinity{
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-						{
-							Weight: 100,
-							PodAffinityTerm: corev1.PodAffinityTerm{
-								LabelSelector: &metav1.LabelSelector{
-									MatchExpressions: []metav1.LabelSelectorRequirement{{
-										Key:      "topo",
-										Operator: "In",
-										Values:   []string{s.Name},
-									}},
-								},
-								TopologyKey: "kubernetes.io/hostname",
-							},
-						},
-					},
-				},
-			},
-			Volumes: []corev1.Volume{
-				{
-					Name: variantsVolName,
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: variantsCfgMapName,
-							},
-							Items: []corev1.KeyToPath{
-								{
-									Key:  s.Spec.GetModel(),
-									Path: variantsTemplateTempName,
-								},
-							},
-						},
-					},
-				},
-				{
-					Name: topomacVolName,
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: topomacCfgMapName,
-							},
-						},
-					},
-				},
-				{
-					Name: entrypointVolName,
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: entrypointCfgMapName,
-							},
-							DefaultMode: pointer.Int32(0777),
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// initialize config path and config file variables
-	cfgPath := defaultConfigPath
-	if p := s.Spec.GetConfig().ConfigPath; p != "" {
-		cfgPath = p
-	}
-
-	cfgFile := s.Spec.GetConfig().ConfigFile
-
-	// only create startup config mounts if the config data was set in kne
-	if s.Spec.Config.ConfigDataPresent {
-		log.Info(
-			"Adding volume for startup config to pod spec",
-			"volume.name",
-			"startup-config-volume",
-			"mount.path",
-			cfgPath+"/"+cfgFile,
-		)
-		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-			Name: "startup-config-volume",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: fmt.Sprintf("%s-config", s.Name),
-					},
-				},
-			},
-		})
-
-		pod.Spec.Containers[0].VolumeMounts = append(
-			pod.Spec.Containers[0].VolumeMounts,
-			corev1.VolumeMount{
-				Name:      "startup-config-volume",
-				MountPath: cfgPath + "/" + cfgFile,
-				SubPath:   cfgFile,
-				ReadOnly:  true,
-			},
-		)
-	}
-
-	_ = ctrl.SetControllerReference(s, pod, r.Scheme)
-
-	return pod
-}
-
-// createConfigMapsIfNeeded creates srlinux-variants and srlinux-topomac config maps which every srlinux pod needs to mount.
-func createConfigMapsIfNeeded(
-	ctx context.Context,
-	r *SrlinuxReconciler,
-	ns string,
-	log logr.Logger,
-) error {
-	// Check if the variants cfg map already exists, if not create a new one
-	cfgMap := &corev1.ConfigMap{}
-	err := r.Get(ctx, types.NamespacedName{Name: variantsCfgMapName, Namespace: ns}, cfgMap)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new variants configmap")
-		data, err := VariantsFS.ReadFile("manifests/variants/srl_variants.yml")
-		if err != nil {
-			return err
-		}
-		decoder := serializer.NewCodecFactory(clientgoscheme.Scheme).UniversalDecoder()
-		err = runtime.DecodeInto(decoder, data, cfgMap)
-		if err != nil {
-			return err
-		}
-		cfgMap.ObjectMeta.Namespace = ns
-		err = r.Create(ctx, cfgMap)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Check if the topomac script cfg map already exists, if not create a new one
-	cfgMap = &corev1.ConfigMap{}
-	err = r.Get(ctx, types.NamespacedName{Name: topomacCfgMapName, Namespace: ns}, cfgMap)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new topomac script configmap")
-		data, err := VariantsFS.ReadFile("manifests/variants/topomac.yml")
-		if err != nil {
-			return err
-		}
-		decoder := serializer.NewCodecFactory(clientgoscheme.Scheme).UniversalDecoder()
-		err = runtime.DecodeInto(decoder, data, cfgMap)
-		if err != nil {
-			return err
-		}
-		cfgMap.ObjectMeta.Namespace = ns
-		err = r.Create(ctx, cfgMap)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Check if the kne-entrypoint cfg map already exists, if not create a new one
-	cfgMap = &corev1.ConfigMap{}
-	err = r.Get(ctx, types.NamespacedName{Name: entrypointCfgMapName, Namespace: ns}, cfgMap)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new kne-entrypoint configmap")
-		data, err := VariantsFS.ReadFile("manifests/variants/kne-entrypoint.yml")
-		if err != nil {
-			return err
-		}
-		decoder := serializer.NewCodecFactory(clientgoscheme.Scheme).UniversalDecoder()
-		err = runtime.DecodeInto(decoder, data, cfgMap)
-		if err != nil {
-			return err
-		}
-		cfgMap.ObjectMeta.Namespace = ns
-		err = r.Create(ctx, cfgMap)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
