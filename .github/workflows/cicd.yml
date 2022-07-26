@@ -37,5 +37,5 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           args: --config=./.github/workflows/linters/.golangci.yml
-          version: "1.47.2"
+          version: "v1.47.2"
           skip-go-installation: true
