@@ -1,4 +1,7 @@
+// Clientset for SRLinux custom resource.
 package v1alpha1
+
+// note to my future self: see https://www.martin-helmich.de/en/blog/kubernetes-crd-client.html for details
 
 import (
 	"context"
