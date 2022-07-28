@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +19,9 @@ import (
 
 	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
 )
+
+// ErrUpdateFailed occurs when update operation fails on srlinux CR.
+var ErrUpdateFailed = errors.New("Operation update failure")
 
 // SrlinuxInterface provides access to the Srlinux CRD.
 type SrlinuxInterface interface {
@@ -189,7 +193,7 @@ func (s *srlinuxClient) Update(
 
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to type assert return to srlinux")
+		return nil, fmt.Errorf("failed to type assert return to srlinux: %w", ErrUpdateFailed)
 	}
 
 	return &result, nil

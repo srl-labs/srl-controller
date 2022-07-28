@@ -22,7 +22,6 @@ import (
 
 // SrlinuxSpec defines the desired state of Srlinux.
 type SrlinuxSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Config        *NodeConfig       `json:"config,omitempty"`
@@ -65,6 +64,7 @@ func init() {
 	SchemeBuilder.Register(&Srlinux{}, &SrlinuxList{})
 }
 
+// GetConfig gets config from srlinux spec.
 func (s *SrlinuxSpec) GetConfig() *NodeConfig {
 	if s.Config != nil {
 		return s.Config
@@ -73,6 +73,8 @@ func (s *SrlinuxSpec) GetConfig() *NodeConfig {
 	return nil
 }
 
+// GetConstraints gets constraints from srlinux spec,
+// default constraints are returned if none are present in the spec.
 func (s *SrlinuxSpec) GetConstraints() map[string]string {
 	if s.Constraints != nil {
 		return s.Constraints
@@ -81,6 +83,8 @@ func (s *SrlinuxSpec) GetConstraints() map[string]string {
 	return defaultConstraints
 }
 
+// GetModel gets srlinux model (aka variant) from srlinux spec,
+// default srlinux variant is returned if none present in the spec.
 func (s *SrlinuxSpec) GetModel() string {
 	if s.Model != "" {
 		return s.Model
