@@ -21,7 +21,7 @@ import (
 )
 
 // ErrUpdateFailed occurs when update operation fails on srlinux CR.
-var ErrUpdateFailed = errors.New("Operation update failure")
+var ErrUpdateFailed = errors.New("operation update failed")
 
 // SrlinuxInterface provides access to the Srlinux CRD.
 type SrlinuxInterface interface {

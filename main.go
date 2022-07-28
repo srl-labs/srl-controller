@@ -37,9 +37,11 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+const ctrlManagerPort = 9443
+
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme   = runtime.NewScheme()        // nolint: gochecknoglobals
+	setupLog = ctrl.Log.WithName("setup") // nolint: gochecknoglobals
 
 	//go:embed manifests/variants/*
 	variantsFS embed.FS
@@ -55,29 +57,37 @@ func init() {
 	controllers.VariantsFS = variantsFS
 }
 
-func main() {
+func main() { // nolint: funlen
 	var metricsAddr string
+
 	var enableLeaderElection bool
+
 	var probeAddr string
+
 	flag.StringVar(
 		&metricsAddr,
 		"metrics-bind-address",
 		":8080",
 		"The address the metric endpoint binds to.",
 	)
+
 	flag.StringVar(
 		&probeAddr,
 		"health-probe-bind-address",
 		":8081",
 		"The address the probe endpoint binds to.",
 	)
+
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+
 	opts := zap.Options{
 		Development: true,
 	}
+
 	opts.BindFlags(flag.CommandLine)
+
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
@@ -85,7 +95,7 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Port:                   ctrlManagerPort,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "8bce046c.srlinux.dev",
@@ -108,12 +118,14 @@ func main() {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
 	}
+
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
 
 	setupLog.Info("starting manager")
+
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

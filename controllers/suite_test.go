@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controllers_test
 
 import (
 	"path/filepath"
@@ -37,8 +37,8 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient client.Client
-	testEnv   *envtest.Environment
+	k8sClient client.Client        // nolint: gochecknoglobals
+	testEnv   *envtest.Environment // nolint: gochecknoglobals
 )
 
 func TestAPIs(t *testing.T) {
