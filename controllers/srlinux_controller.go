@@ -47,7 +47,7 @@ const (
 
 	entrypointVolName       = "kne-entrypoint"
 	entrypointVolMntPath    = "/kne-entrypoint.sh"
-	entrypointVolMntSubPath = "kne-entrypoint.sh"
+	entrypointVolMntSubPath = "kne-entrypoint.sh" // used to enable setting file permissions for a file
 	entrypointCfgMapName    = "srlinux-kne-entrypoint"
 
 	// default path to a startup config file

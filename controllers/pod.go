@@ -85,21 +85,7 @@ func createContainers(s *typesv1a1.Srlinux) []corev1.Container {
 			Privileged: pointer.Bool(true),
 			RunAsUser:  pointer.Int64(0),
 		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      variantsVolName,
-				MountPath: variantsVolMntPath,
-			},
-			{
-				Name:      topomacVolName,
-				MountPath: topomacVolMntPath,
-			},
-			{
-				Name:      entrypointVolName,
-				MountPath: entrypointVolMntPath,
-				SubPath:   entrypointVolMntSubPath,
-			},
-		},
+		VolumeMounts: createVolumeMounts(),
 	}}
 }
 
@@ -208,5 +194,23 @@ func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger)
 				ReadOnly:  true,
 			},
 		)
+	}
+}
+
+func createVolumeMounts() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		{
+			Name:      variantsVolName,
+			MountPath: variantsVolMntPath,
+		},
+		{
+			Name:      topomacVolName,
+			MountPath: topomacVolMntPath,
+		},
+		{
+			Name:      entrypointVolName,
+			MountPath: entrypointVolMntPath,
+			SubPath:   entrypointVolMntSubPath,
+		},
 	}
 }
