@@ -103,4 +103,4 @@ To build `srl-controller` container image execute:
 make docker-build IMG=ghcr.io/srl-labs/srl-controller:${tag}
 ```
 
-Then upload the image to the registry.
+Then upload the image to the registry and update the controller version in [manager/kustomization.yaml](config/manager/kustomization.yaml).
