@@ -58,7 +58,6 @@ linters:
     - goerr113
     - nestif
     - prealloc
-    - testpackage
     - wsl
 linters-settings:
   lll:
