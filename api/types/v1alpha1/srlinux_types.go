@@ -23,12 +23,14 @@ import (
 // SrlinuxSpec defines the desired state of Srlinux.
 type SrlinuxSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
-
 	Config        *NodeConfig       `json:"config,omitempty"`
 	NumInterfaces int               `json:"num-interfaces,omitempty"`
 	Constraints   map[string]string `json:"constraints,omitempty"`
-	Model         string            `json:"model,omitempty"`
-	Version       string            `json:"version,omitempty"`
+	// Model encodes SR Linux variant (ixr-d3, ixr-6e, etc)
+	Model string `json:"model,omitempty"`
+	// Version may be set in kne topology as a mean to explicitly provide version information
+	// in case it is not encoded in the image tag
+	Version string `json:"version,omitempty"`
 }
 
 // SrlinuxStatus defines the observed state of Srlinux.
@@ -70,7 +72,7 @@ func (s *SrlinuxSpec) GetConfig() *NodeConfig {
 		return s.Config
 	}
 
-	return nil
+	return &NodeConfig{}
 }
 
 // GetConstraints gets constraints from srlinux spec,
@@ -97,13 +99,17 @@ func (s *SrlinuxSpec) GetModel() string {
 // if Config.Image is provided it takes precedence over all other option
 // if not, the Spec.Version is used as a tag for public container image ghcr.io/nokia/srlinux.
 func (s *SrlinuxSpec) GetImage() string {
+	img := defaultSRLinuxImageName
+
 	if s.GetConfig().Image != "" {
-		return s.GetConfig().Image
+		img = s.GetConfig().Image
 	}
 
-	if s.Version != "" {
-		return defaultSRLinuxImageName + ":" + s.Version
+	// when image is not defined, but version is
+	// the version is used as a tag for a default image repo
+	if s.GetConfig().Image == "" && s.Version != "" {
+		img = img + ":" + s.Version
 	}
 
-	return defaultSRLinuxImageName
+	return img
 }
