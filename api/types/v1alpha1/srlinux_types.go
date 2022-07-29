@@ -20,9 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// SrlinuxSpec defines the desired state of Srlinux
+// SrlinuxSpec defines the desired state of Srlinux.
 type SrlinuxSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Config        *NodeConfig       `json:"config,omitempty"`
@@ -32,18 +31,18 @@ type SrlinuxSpec struct {
 	Version       string            `json:"version,omitempty"`
 }
 
-// SrlinuxStatus defines the observed state of Srlinux
+// SrlinuxStatus defines the observed state of Srlinux.
 type SrlinuxStatus struct {
 	// Image used to run srlinux pod
 	Image string `json:"image,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // Srlinux is the Schema for the srlinuxes API
-//+kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type Srlinux struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -54,7 +53,7 @@ type Srlinux struct {
 
 //+kubebuilder:object:root=true
 
-// SrlinuxList contains a list of Srlinux
+// SrlinuxList contains a list of Srlinux.
 type SrlinuxList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -65,6 +64,7 @@ func init() {
 	SchemeBuilder.Register(&Srlinux{}, &SrlinuxList{})
 }
 
+// GetConfig gets config from srlinux spec.
 func (s *SrlinuxSpec) GetConfig() *NodeConfig {
 	if s.Config != nil {
 		return s.Config
@@ -73,6 +73,8 @@ func (s *SrlinuxSpec) GetConfig() *NodeConfig {
 	return nil
 }
 
+// GetConstraints gets constraints from srlinux spec,
+// default constraints are returned if none are present in the spec.
 func (s *SrlinuxSpec) GetConstraints() map[string]string {
 	if s.Constraints != nil {
 		return s.Constraints
@@ -81,6 +83,8 @@ func (s *SrlinuxSpec) GetConstraints() map[string]string {
 	return defaultConstraints
 }
 
+// GetModel gets srlinux model (aka variant) from srlinux spec,
+// default srlinux variant is returned if none present in the spec.
 func (s *SrlinuxSpec) GetModel() string {
 	if s.Model != "" {
 		return s.Model
@@ -91,7 +95,7 @@ func (s *SrlinuxSpec) GetModel() string {
 
 // GetImage returns the srlinux container image name that is used in pod spec
 // if Config.Image is provided it takes precedence over all other option
-// if not, the Spec.Version is used as a tag for public container image ghcr.io/nokia/srlinux
+// if not, the Spec.Version is used as a tag for public container image ghcr.io/nokia/srlinux.
 func (s *SrlinuxSpec) GetImage() string {
 	if s.GetConfig().Image != "" {
 		return s.GetConfig().Image

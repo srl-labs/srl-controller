@@ -6,6 +6,7 @@ const (
 )
 
 var (
+	// nolint: gochecknoglobals
 	defaultCmd = []string{
 		"/tini",
 		"--",
@@ -14,6 +15,7 @@ var (
 		"/kne-entrypoint.sh",
 	}
 
+	// nolint: gochecknoglobals
 	defaultArgs = []string{
 		"sudo",
 		"bash",
@@ -21,12 +23,14 @@ var (
 		"touch /.dockerenv && /opt/srlinux/bin/sr_linux",
 	}
 
+	// nolint: gochecknoglobals
 	defaultConstraints = map[string]string{
 		"cpu":    "0.5",
 		"memory": "1Gi",
 	}
 )
 
+// NodeConfig represents srlinux node configuration parameters.
 type NodeConfig struct {
 	Command []string `json:"command,omitempty"` // Command to pass into pod.
 	Args    []string `json:"args,omitempty"`    // Command args to pass into the pod.
@@ -42,9 +46,10 @@ type NodeConfig struct {
 	// When set to true by kne, srlinux controller will attempt to mount the file with startup config to the pod
 	ConfigDataPresent bool            `json:"config_data_present,omitempty"`
 	Cert              *CertificateCfg `json:"cert,omitempty"`
-	Sleep             uint32          `json:"sleep,omitempty"` // Sleeptime before starting the pod.
+	Sleep             uint32          `json:"sleep,omitempty"` // Sleep time before starting the pod.
 }
 
+// CertificateCfg represents srlinux certificate configuration parameters.
 type CertificateCfg struct {
 	// Certificate name on the node.
 	CertName string `json:"cert_name,omitempty"`
@@ -56,6 +61,7 @@ type CertificateCfg struct {
 	CommonName string `json:"common_name,omitempty"`
 }
 
+// GetCommand gets command from srlinux node configuration.
 func (n *NodeConfig) GetCommand() []string {
 	if n.Command != nil {
 		return n.Command
@@ -64,6 +70,7 @@ func (n *NodeConfig) GetCommand() []string {
 	return defaultCmd
 }
 
+// GetArgs gets arguments from srlinux node configuration.
 func (n *NodeConfig) GetArgs() []string {
 	if n.Args != nil {
 		return n.Args

@@ -1,7 +1,11 @@
+// Package v1alpha1 is an v1alpha version of a Clientset for SR Linux customer resource.
 package v1alpha1
+
+// note to my future self: see https://www.martin-helmich.de/en/blog/kubernetes-crd-client.html for details
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +20,9 @@ import (
 	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
 )
 
+// ErrUpdateFailed occurs when update operation fails on srlinux CR.
+var ErrUpdateFailed = errors.New("operation update failed")
+
 // SrlinuxInterface provides access to the Srlinux CRD.
 type SrlinuxInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error)
@@ -23,8 +30,17 @@ type SrlinuxInterface interface {
 	Create(ctx context.Context, srlinux *typesv1alpha1.Srlinux) (*typesv1alpha1.Srlinux, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
-	Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*typesv1alpha1.Srlinux, error)
+	Unstructured(
+		ctx context.Context,
+		name string,
+		opts metav1.GetOptions,
+		subresources ...string,
+	) (*unstructured.Unstructured, error)
+	Update(
+		ctx context.Context,
+		obj *unstructured.Unstructured,
+		opts metav1.UpdateOptions,
+	) (*typesv1alpha1.Srlinux, error)
 }
 
 // Interface is the clientset interface for srlinux.
@@ -38,7 +54,7 @@ type Clientset struct {
 	restClient rest.Interface
 }
 
-var gvr = schema.GroupVersionResource{
+var gvr = schema.GroupVersionResource{ // nolint: gochecknoglobals
 	Group:    typesv1alpha1.GroupVersion.Group,
 	Version:  typesv1alpha1.GroupVersion.Version,
 	Resource: "srlinuxes",
@@ -51,21 +67,26 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	config.APIPath = "/apis"
 	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
+
 	dClient, err := dynamic.NewForConfig(c)
 	if err != nil {
 		return nil, err
 	}
+
 	dInterface := dClient.Resource(gvr)
+
 	rClient, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Clientset{
 		dInterface: dInterface,
 		restClient: rClient,
 	}, nil
 }
 
+// Srlinux initializes srlinuxClient struct which implements SrlinuxInterface.
 func (c *Clientset) Srlinux(namespace string) SrlinuxInterface {
 	return &srlinuxClient{
 		dInterface: c.dInterface,
@@ -80,7 +101,11 @@ type srlinuxClient struct {
 	ns         string
 }
 
-func (s *srlinuxClient) List(ctx context.Context, opts metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error) {
+// List gets a list of SRLinux resources.
+func (s *srlinuxClient) List(
+	ctx context.Context,
+	opts metav1.ListOptions,
+) (*typesv1alpha1.SrlinuxList, error) {
 	result := typesv1alpha1.SrlinuxList{}
 	err := s.restClient.
 		Get().
@@ -93,7 +118,12 @@ func (s *srlinuxClient) List(ctx context.Context, opts metav1.ListOptions) (*typ
 	return &result, err
 }
 
-func (s *srlinuxClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*typesv1alpha1.Srlinux, error) {
+// Get gets SRLinux resource.
+func (s *srlinuxClient) Get(
+	ctx context.Context,
+	name string,
+	opts metav1.GetOptions,
+) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 	err := s.restClient.
 		Get().
@@ -107,7 +137,11 @@ func (s *srlinuxClient) Get(ctx context.Context, name string, opts metav1.GetOpt
 	return &result, err
 }
 
-func (s *srlinuxClient) Create(ctx context.Context, srlinux *typesv1alpha1.Srlinux) (*typesv1alpha1.Srlinux, error) {
+// Create creates SRLinux resource.
+func (s *srlinuxClient) Create(
+	ctx context.Context,
+	srlinux *typesv1alpha1.Srlinux,
+) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 	err := s.restClient.
 		Post().
@@ -120,8 +154,12 @@ func (s *srlinuxClient) Create(ctx context.Context, srlinux *typesv1alpha1.Srlin
 	return &result, err
 }
 
-func (s *srlinuxClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (s *srlinuxClient) Watch(
+	ctx context.Context,
+	opts metav1.ListOptions,
+) (watch.Interface, error) {
 	opts.Watch = true
+
 	return s.restClient.
 		Get().
 		Namespace(s.ns).
@@ -130,10 +168,10 @@ func (s *srlinuxClient) Watch(ctx context.Context, opts metav1.ListOptions) (wat
 		Watch(ctx)
 }
 
-func (t *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return t.restClient.
+func (s *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return s.restClient.
 		Delete().
-		Namespace(t.ns).
+		Namespace(s.ns).
 		Resource(gvr.Resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Name(name).
@@ -141,20 +179,32 @@ func (t *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.Del
 		Error()
 }
 
-func (s *srlinuxClient) Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*typesv1alpha1.Srlinux, error) {
+func (s *srlinuxClient) Update(
+	ctx context.Context,
+	obj *unstructured.Unstructured,
+	opts metav1.UpdateOptions,
+) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
+
 	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
+
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to type assert return to srlinux")
+		return nil, fmt.Errorf("failed to type assert return to srlinux: %w", ErrUpdateFailed)
 	}
+
 	return &result, nil
 }
 
-func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (s *srlinuxClient) Unstructured(
+	ctx context.Context,
+	name string,
+	opts metav1.GetOptions,
+	subresources ...string,
+) (*unstructured.Unstructured, error) {
 	return s.dInterface.Namespace(s.ns).Get(ctx, name, opts, subresources...)
 }
 
