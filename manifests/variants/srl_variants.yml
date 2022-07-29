@@ -99,6 +99,18 @@ data:
         "card_type": 127
         "mda_type": 36
 
+  ixr6e: |
+    # ixr6e
+    chassis_configuration:
+      "chassis_type": 68
+      "base_mac": 02:__RANDMAC__:00:00:00
+      "cpm_card_type": 184
+
+    slot_configuration:
+      1:
+        "card_type": 182
+        "mda_type": 199
+
   ixr10: |
     # ixr10
     chassis_configuration:
@@ -110,3 +122,15 @@ data:
       1:
         "card_type": 127
         "mda_type": 36
+
+  ixr10e: |
+    # ixr10e
+    chassis_configuration:
+      "chassis_type": 69
+      "base_mac": 02:__RANDMAC__:00:00:00
+      "cpm_card_type": 184
+
+    slot_configuration:
+      1:
+        "card_type": 182
+        "mda_type": 199
