@@ -103,10 +103,14 @@ spec:
                   type: string
                 type: object
               model:
+                description: Model encodes SR Linux variant (ixr-d3, ixr-6e, etc)
                 type: string
               num-interfaces:
                 type: integer
               version:
+                description: Version may be set in kne topology as a mean to explicitly
+                  provide version information in case it is not encoded in the image
+                  tag
                 type: string
             type: object
           status:

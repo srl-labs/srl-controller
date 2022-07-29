@@ -22,7 +22,6 @@ import (
 
 // SrlinuxSpec defines the desired state of Srlinux.
 type SrlinuxSpec struct {
-	// Important: Run "make" to regenerate code after modifying this file
 	Config        *NodeConfig       `json:"config,omitempty"`
 	NumInterfaces int               `json:"num-interfaces,omitempty"`
 	Constraints   map[string]string `json:"constraints,omitempty"`
