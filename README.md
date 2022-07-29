@@ -79,7 +79,7 @@ The request to create/delete a resource of kind `Srlinux` is typically coming fr
 
 ### Creation
 
-When a request to create an `Srlinux` resource named `r1` in namespace `ns` comes in, the controller's reconcile loop does the following:
+When a request to create a `Srlinux` resource named `r1` in namespace `ns` comes in, the controller's reconcile loop does the following:
 
 1. Checks if the pods exist within a namespace `ns` with a name `r1`
 2. If the pod hasn't been found, then the controller first ensures that the necessary config maps exist in namespace `ns` and creates them otherwise.
