@@ -41,15 +41,18 @@ spec:
           metadata:
             type: object
           spec:
-            description: SrlinuxSpec defines the desired state of Srlinux
+            description: SrlinuxSpec defines the desired state of Srlinux.
             properties:
               config:
+                description: NodeConfig represents srlinux node configuration parameters.
                 properties:
                   args:
                     items:
                       type: string
                     type: array
                   cert:
+                    description: CertificateCfg represents srlinux certificate configuration
+                      parameters.
                     properties:
                       cert_name:
                         description: Certificate name on the node.
@@ -107,7 +110,7 @@ spec:
                 type: string
             type: object
           status:
-            description: SrlinuxStatus defines the observed state of Srlinux
+            description: SrlinuxStatus defines the observed state of Srlinux.
             properties:
               image:
                 description: Image used to run srlinux pod
