@@ -10,4 +10,5 @@ data:
     # this entrypoint ensures that we call topomac script before executing the main entrypoint
 
     sudo bash /tmp/topomac/topomac.sh
+    echo "topomac.sh" script finished
     exec /entrypoint.sh "$@"
