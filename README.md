@@ -81,6 +81,12 @@ To connect with SSH to the `r1` node, use `ssh admin@172.19.0.50` command.
 kind load docker-image srlinux:0.0.0-38566 --name kne
 ```
 
+## Using license files
+
+To remove the packets-per-second limit of a public container image or to launch chassis-based variants of SR Linux (ixr-6e/10e) KNE users should provide a valid license file to the `srl-controller`.
+
+Navigate to [Using license files](docs/using-licenses.md) document to have a detailed explanation on that topic.
+
 ## Controller operations
 
 The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://doc.crds.dev/github.com/srl-labs/srl-controller).
@@ -104,7 +110,7 @@ When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
 
 This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/openconfig/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
 
-## Building srl-controller container image
+## Building `srl-controller` container image
 
 To build `srl-controller` container image execute:
 
