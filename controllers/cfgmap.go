@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -12,24 +13,26 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
+const srlLicenseSecretName = "srlinux-licenses"
+
 // createConfigMaps creates srlinux-variants and srlinux-topomac config maps which every srlinux pod needs to mount.
 func createConfigMaps(
 	ctx context.Context,
 	r *SrlinuxReconciler,
-	ns string,
+	s *typesv1alpha1.Srlinux,
 	log logr.Logger,
 ) error {
-	err := createVariantsCfgMap(ctx, r, ns, log)
+	err := createVariantsCfgMap(ctx, r, s.Namespace, log)
 	if err != nil {
 		return err
 	}
 
-	err = createTopomacScriptCfgMap(ctx, r, ns, log)
+	err = createTopomacScriptCfgMap(ctx, r, s.Namespace, log)
 	if err != nil {
 		return err
 	}
 
-	err = createKNEEntrypointCfgMap(ctx, r, ns, log)
+	err = createKNEEntrypointCfgMap(ctx, r, s.Namespace, log)
 
 	return err
 }
@@ -45,7 +48,7 @@ func createVariantsCfgMap(
 
 	err := r.Get(ctx, types.NamespacedName{Name: variantsCfgMapName, Namespace: ns}, cfgMap)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new variants configmap")
+		log.Info("creating a new variants configmap")
 
 		data, err := VariantsFS.ReadFile("manifests/variants/srl_variants.yml")
 		if err != nil {
@@ -65,6 +68,8 @@ func createVariantsCfgMap(
 		if err != nil {
 			return err
 		}
+
+		return nil
 	}
 
 	return err
@@ -81,7 +86,7 @@ func createTopomacScriptCfgMap(
 
 	err := r.Get(ctx, types.NamespacedName{Name: topomacCfgMapName, Namespace: ns}, cfgMap)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new topomac script configmap")
+		log.Info("creating a new topomac script configmap")
 
 		data, err := VariantsFS.ReadFile("manifests/variants/topomac.yml")
 		if err != nil {
@@ -101,6 +106,8 @@ func createTopomacScriptCfgMap(
 		if err != nil {
 			return err
 		}
+
+		return nil
 	}
 
 	return err
@@ -117,7 +124,7 @@ func createKNEEntrypointCfgMap(
 
 	err := r.Get(ctx, types.NamespacedName{Name: entrypointCfgMapName, Namespace: ns}, cfgMap)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating a new kne-entrypoint configmap")
+		log.Info("creating a new kne-entrypoint configmap")
 
 		data, err := VariantsFS.ReadFile("manifests/variants/kne-entrypoint.yml")
 		if err != nil {
@@ -137,6 +144,8 @@ func createKNEEntrypointCfgMap(
 		if err != nil {
 			return err
 		}
+
+		return nil
 	}
 
 	return err

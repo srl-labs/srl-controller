@@ -38,7 +38,25 @@ spec:
               object represents. Servers may infer this from the endpoint the client
               submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
+          license_key:
+            description: license key from license secret that contains a license file
+              for this Srlinux
+            type: string
           metadata:
+            type: object
+          nos-version:
+            description: parsed NOS version
+            properties:
+              build:
+                type: string
+              commit:
+                type: string
+              major:
+                type: string
+              minor:
+                type: string
+              patch:
+                type: string
             type: object
           spec:
             description: SrlinuxSpec defines the desired state of Srlinux.

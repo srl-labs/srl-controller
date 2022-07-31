@@ -35,6 +35,8 @@ import (
 )
 
 const (
+	controllerNamespace = "srlinux-controller"
+
 	initContainerName        = "networkop/init-wait:latest"
 	variantsVolName          = "variants"
 	variantsVolMntPath       = "/tmp/topo"
@@ -45,9 +47,11 @@ const (
 	topomacVolMntPath = "/tmp/topomac"
 	topomacCfgMapName = "srlinux-topomac-script"
 
-	entrypointVolName       = "kne-entrypoint"
-	entrypointVolMntPath    = "/kne-entrypoint.sh"
-	entrypointVolMntSubPath = "kne-entrypoint.sh" // used to enable setting file permissions for a file
+	entrypointVolName    = "kne-entrypoint"
+	entrypointVolMntPath = "/kne-entrypoint.sh"
+	// used to enable mounting a file in an existing folder
+	// https://stackoverflow.com/questions/33415913/whats-the-best-way-to-share-mount-one-file-into-a-pod
+	entrypointVolMntSubPath = "kne-entrypoint.sh"
 	entrypointCfgMapName    = "srlinux-kne-entrypoint"
 
 	// default path to a startup config file
@@ -89,6 +93,7 @@ func (r *SrlinuxReconciler) Reconcile(
 	req ctrl.Request,
 ) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
+
 	srlinux := &typesv1alpha1.Srlinux{}
 
 	if res, isReturn, err := r.checkSrlinuxCR(ctx, log, req, srlinux); isReturn {
@@ -135,7 +140,7 @@ func (r *SrlinuxReconciler) checkSrlinuxCR(
 			return ctrl.Result{}, true, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get Srlinux")
+		log.Error(err, "failed to get Srlinux")
 
 		return ctrl.Result{}, true, err
 	}
@@ -149,25 +154,36 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 	srlinux *typesv1alpha1.Srlinux,
 	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
-	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
+	// get NOS version
+	v, err := srlinux.Spec.GetImageVersion()
+	if err != nil {
+		return ctrl.Result{}, true, err
+	}
+
+	log.Info("SR Linux image version parsed", "version", v)
+
+	srlinux.NOSVersion = v
+
+	err = r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
-		err = createConfigMaps(ctx, r, srlinux.Namespace, log)
+		err = createConfigMaps(ctx, r, srlinux, log)
 		if err != nil {
 			return ctrl.Result{}, true, err
 		}
+
+		err = r.createSecrets(ctx, srlinux, log)
+		if err != nil {
+			return ctrl.Result{}, true, err
+		}
+
 		// Define a new srlinux pod
 		pod := r.podForSrlinux(ctx, srlinux)
-		log.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+		log.Info("creating a new pod")
 
 		err = r.Create(ctx, pod)
 		if err != nil {
 			log.Error(
-				err,
-				"Failed to create new Pod",
-				"Pod.Namespace",
-				pod.Namespace,
-				"Pod.Name",
-				pod.Name,
+				err, "failed to create new Pod",
 			)
 
 			return ctrl.Result{}, true, err
@@ -176,7 +192,7 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 		// Pod created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, true, nil
 	} else if err != nil {
-		log.Error(err, "Failed to get Pod")
+		log.Error(err, "failed to get Pod")
 
 		return ctrl.Result{}, true, err
 	}
@@ -191,12 +207,12 @@ func (r *SrlinuxReconciler) updateSrlinuxStatus(
 	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
 	if !reflect.DeepEqual(found.Spec.Containers[0].Image, srlinux.Status.Image) {
-		log.Info("Updating srlinux image status to", "image", found.Spec.Containers[0].Image)
+		log.Info("updating srlinux image status to", "image", found.Spec.Containers[0].Image)
 		srlinux.Status.Image = found.Spec.Containers[0].Image
 
 		err := r.Status().Update(ctx, srlinux)
 		if err != nil {
-			log.Error(err, "Failed to update Srlinux status")
+			log.Error(err, "failed to update Srlinux status")
 
 			return ctrl.Result{}, true, err
 		}

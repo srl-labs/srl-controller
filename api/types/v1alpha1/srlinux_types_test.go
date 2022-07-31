@@ -1,13 +1,15 @@
 package v1alpha1
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestGetImage(t *testing.T) {
-
 	tests := []struct {
 		desc string
 		spec *SrlinuxSpec
@@ -34,6 +36,24 @@ func TestGetImage(t *testing.T) {
 			},
 			want: defaultSRLinuxImageName + ":21.11.1",
 		},
+		{
+			desc: "image without tag",
+			spec: &SrlinuxSpec{
+				Config: &NodeConfig{
+					Image: "ghcr.io/nokia/srlinux",
+				},
+			},
+			want: "ghcr.io/nokia/srlinux",
+		},
+		{
+			desc: "image with latest tag",
+			spec: &SrlinuxSpec{
+				Config: &NodeConfig{
+					Image: "ghcr.io/nokia/srlinux:latest",
+				},
+			},
+			want: "ghcr.io/nokia/srlinux:latest",
+		},
 	}
 
 	for _, tt := range tests {
@@ -51,5 +71,124 @@ func TestGetImage(t *testing.T) {
 		},
 		)
 	}
+}
 
+func TestGetImageVersion(t *testing.T) {
+	tests := []struct {
+		desc string
+		spec *SrlinuxSpec
+		want *SrlVersion
+		err  error
+	}{
+		{
+			desc: "valid version is present",
+			spec: &SrlinuxSpec{
+				Version: "21.11.1",
+				Config:  &NodeConfig{Image: "ghcr.io/nokia/srlinux:somever"},
+			},
+			want: &SrlVersion{"21", "11", "1", "", ""},
+		},
+		{
+			desc: "invalid version is present",
+			spec: &SrlinuxSpec{
+				Version: "abc21.11.1",
+				Config:  &NodeConfig{Image: "ghcr.io/nokia/srlinux:somever"},
+			},
+			err: ErrVersionParse,
+		},
+		{
+			desc: "version is not present, valid image tag is given",
+			spec: &SrlinuxSpec{
+				Config: &NodeConfig{Image: "ghcr.io/nokia/srlinux:21.11.1"},
+			},
+			want: &SrlVersion{"21", "11", "1", "", ""},
+		},
+		{
+			desc: "version is not present, invalid image tag is given",
+			spec: &SrlinuxSpec{
+				Config: &NodeConfig{Image: "ghcr.io/nokia/srlinux:21"},
+			},
+			err: ErrVersionParse,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			v, err := tt.spec.GetImageVersion()
+
+			if !errors.Is(err, tt.err) {
+				t.Fatalf("got error '%v' but expected '%v'", err, tt.err)
+			}
+
+			if !cmp.Equal(v, tt.want) {
+				t.Fatalf(
+					"%s: actual and expected inputs do not match\nactual: %+v\nexpected:%+v",
+					tt.desc,
+					v,
+					tt.want,
+				)
+			}
+		},
+		)
+	}
+}
+
+func TestInitVersion(t *testing.T) {
+	tests := []struct {
+		desc   string
+		srl    *Srlinux
+		secret *corev1.Secret
+		want   string
+	}{
+		{
+			desc: "secret key matches srl version",
+			srl: &Srlinux{
+				NOSVersion: &SrlVersion{"22", "3", "", "", ""},
+			},
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"22-3.key": nil,
+					"all.key":  nil,
+				},
+			},
+			want: "22-3.key",
+		},
+		{
+			desc: "wildcard secret key matches srl version",
+			srl: &Srlinux{
+				NOSVersion: &SrlVersion{"22", "3", "", "", ""},
+			},
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"22-6.key": nil,
+					"all.key":  nil,
+				},
+			},
+			want: "all.key",
+		},
+		{
+			desc: "secret does not exist",
+			srl: &Srlinux{
+				NOSVersion: &SrlVersion{"22", "3", "", "", ""},
+			},
+			secret: nil,
+			want:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			tt.srl.InitLicenseKey(context.TODO(), tt.secret)
+
+			if !cmp.Equal(tt.srl.LicenseKey, tt.want) {
+				t.Fatalf(
+					"%s: actual and expected inputs do not match\nactual: %+v\nexpected:%+v",
+					tt.desc,
+					tt.srl.LicenseKey,
+					tt.want,
+				)
+			}
+		},
+		)
+	}
 }

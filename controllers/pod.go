@@ -14,7 +14,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const terminationGracePeriodSeconds = 0
+const (
+	terminationGracePeriodSeconds = 0
+	licensesVolName               = "license"
+	licenseFileName               = "license.key"
+	licenseMntPath                = "/opt/srlinux/etc/license.key"
+	licenseMntSubPath             = "license.key"
+)
 
 // podForSrlinux returns a srlinux Pod object.
 func (r *SrlinuxReconciler) podForSrlinux(
@@ -85,7 +91,7 @@ func createContainers(s *typesv1a1.Srlinux) []corev1.Container {
 			Privileged: pointer.Bool(true),
 			RunAsUser:  pointer.Int64(0),
 		},
-		VolumeMounts: createVolumeMounts(),
+		VolumeMounts: createVolumeMounts(s),
 	}}
 }
 
@@ -112,7 +118,7 @@ func createAffinity(s *typesv1a1.Srlinux) *corev1.Affinity {
 }
 
 func createVolumes(s *typesv1a1.Srlinux) []corev1.Volume {
-	return []corev1.Volume{
+	vols := []corev1.Volume{
 		{
 			Name: variantsVolName,
 			VolumeSource: corev1.VolumeSource{
@@ -151,6 +157,12 @@ func createVolumes(s *typesv1a1.Srlinux) []corev1.Volume {
 			},
 		},
 	}
+
+	if s.LicenseKey != "" {
+		vols = append(vols, createLicenseVolume(s))
+	}
+
+	return vols
 }
 
 // handleStartupConfig creates volume mounts and volumes for srlinux pod
@@ -197,8 +209,8 @@ func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger)
 	}
 }
 
-func createVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
+func createVolumeMounts(s *typesv1a1.Srlinux) []corev1.VolumeMount {
+	vms := []corev1.VolumeMount{
 		{
 			Name:      variantsVolName,
 			MountPath: variantsVolMntPath,
@@ -212,5 +224,36 @@ func createVolumeMounts() []corev1.VolumeMount {
 			MountPath: entrypointVolMntPath,
 			SubPath:   entrypointVolMntSubPath,
 		},
+	}
+
+	if s.LicenseKey != "" {
+		vms = append(vms, createLicenseVolumeMount())
+	}
+
+	return vms
+}
+
+func createLicenseVolume(s *typesv1a1.Srlinux) corev1.Volume {
+	return corev1.Volume{
+		Name: licensesVolName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: srlLicenseSecretName,
+				Items: []corev1.KeyToPath{
+					{
+						Key:  s.LicenseKey,
+						Path: licenseFileName,
+					},
+				},
+			},
+		},
+	}
+}
+
+func createLicenseVolumeMount() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      licensesVolName,
+		MountPath: licenseMntPath,
+		SubPath:   licenseMntSubPath,
 	}
 }
