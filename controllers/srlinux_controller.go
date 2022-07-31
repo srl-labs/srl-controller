@@ -178,6 +178,7 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 
 		// Define a new srlinux pod
 		pod := r.podForSrlinux(ctx, srlinux)
+
 		log.Info("creating a new pod")
 
 		err = r.Create(ctx, pod)
