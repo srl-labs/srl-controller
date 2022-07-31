@@ -71,6 +71,16 @@ service-r2   LoadBalancer   10.96.34.36     172.19.0.51   443:30010/TCP,22:30011
 
 To connect with SSH to the `r1` node, use `ssh admin@172.19.0.50` command.
 
+### Loading images to kind cluster
+
+[Public SR Linux container image](https://github.com/nokia/srlinux-container-image) will be pulled by kind automatically, if Internet access is present. Images which are not available publicy can be uploaded to kind manually:
+
+```bash
+# default kne kind cluster name is `kne`
+# which is the last argument in the command
+kind load docker-image srlinux:0.0.0-38566 --name kne
+```
+
 ## Controller operations
 
 The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://doc.crds.dev/github.com/srl-labs/srl-controller).
