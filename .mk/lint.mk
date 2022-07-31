@@ -7,13 +7,16 @@ GODOT_FLAGS := -w .
 GOLINES_CMD := docker run --rm -it -v $(shell pwd):/work ghcr.io/hellt/golines:0.10.0 golines
 GOLINES_FLAGS := -w .
 
-GOLANGCI_CMD := docker run -it --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.47.2 golangci-lint
+GOLANGCI_CMD := docker run -it --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:v1.47.2 golangci-lint
 GOLANGCI_FLAGS := --config ./.github/workflows/linters/.golangci.yml run -v --fix
 
 
 # when running in a CI env we use locally installed bind
 ifdef CI
 	GOFUMPT_CMD := gofumpt
+	GODOT_CMD := godot
+	GOLINES_CMD := golines
+	GOLANGCI_CMD := golangci-lint
 endif
 
 

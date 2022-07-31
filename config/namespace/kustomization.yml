@@ -1,0 +1,6 @@
+# this namespace resource is created separately to support
+# license secrets to be created with a namespace provisioned automatically
+# if srl controller is created first, then this namespace will be already created
+# as part of the manager kustomization.
+resources:
+  - "namespace.yml"
