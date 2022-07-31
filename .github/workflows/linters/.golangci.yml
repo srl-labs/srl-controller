@@ -65,12 +65,13 @@ linters-settings:
 
 issues:
   # https://github.com/golangci/golangci-lint/issues/2439#issuecomment-1002912465
-  exclude-use-default: false
+  # exclude-use-default: false
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
-        - dupl
-        - structcheck
-        - unused
-        - unparam
+        # - gomnd
+        # - dupl
+        # - structcheck
+        # - unused
+        # - unparam
+        - funlen
