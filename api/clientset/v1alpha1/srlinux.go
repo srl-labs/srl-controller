@@ -59,9 +59,24 @@ type Clientset struct {
 }
 
 var gvr = schema.GroupVersionResource{ // nolint: gochecknoglobals
-	Group:    typesv1alpha1.GroupVersion.Group,
-	Version:  typesv1alpha1.GroupVersion.Version,
+	Group:    typesv1alpha1.GroupName,
+	Version:  typesv1alpha1.GroupVersion,
 	Resource: "srlinuxes",
+}
+
+func GVR() schema.GroupVersionResource {
+	return gvr
+}
+
+var (
+	groupVersion = &schema.GroupVersion{
+		Group:   typesv1alpha1.GroupName,
+		Version: typesv1alpha1.GroupVersion,
+	}
+)
+
+func GV() *schema.GroupVersion {
+	return groupVersion
 }
 
 // NewForConfig returns a new Clientset based on c.
@@ -203,15 +218,10 @@ func (s *srlinuxClient) Update(
 	return &result, nil
 }
 
-func (s *srlinuxClient) Unstructured(
-	ctx context.Context,
-	name string,
-	opts *metav1.GetOptions,
-	subresources ...string,
-) (*unstructured.Unstructured, error) {
-	return s.dInterface.Namespace(s.ns).Get(ctx, name, *opts, subresources...)
+func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
+	return s.dInterface.Namespace(s.ns).Get(ctx, name, opts, subresources...)
 }
 
 func init() {
-	_ = typesv1alpha1.AddToScheme(scheme.Scheme)
+	typesv1alpha1.AddToScheme(scheme.Scheme)
 }
