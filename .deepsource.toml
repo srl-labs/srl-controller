@@ -1,0 +1,18 @@
+version = 1
+
+test_patterns = ["*/*_test.go"]
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+  [analyzers.meta]
+  import_root = "github.com/srl-labs/srl-controller"
+
+[[transformers]]
+name = "gofumpt"
+enabled = true
+
+[[transformers]]
+name = "gofmt"
+enabled = true
