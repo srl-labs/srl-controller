@@ -135,16 +135,14 @@ func TestGetImageVersion(t *testing.T) {
 
 func TestInitVersion(t *testing.T) {
 	tests := []struct {
-		desc   string
-		srl    *Srlinux
-		secret *corev1.Secret
-		want   string
+		desc    string
+		version *SrlVersion
+		secret  *corev1.Secret
+		want    string
 	}{
 		{
-			desc: "secret key matches srl version",
-			srl: &Srlinux{
-				NOSVersion: &SrlVersion{"22", "3", "", "", ""},
-			},
+			desc:    "secret key matches srl version",
+			version: &SrlVersion{"22", "3", "", "", ""},
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
 					"22-3.key": nil,
@@ -154,10 +152,8 @@ func TestInitVersion(t *testing.T) {
 			want: "22-3.key",
 		},
 		{
-			desc: "wildcard secret key matches srl version",
-			srl: &Srlinux{
-				NOSVersion: &SrlVersion{"22", "3", "", "", ""},
-			},
+			desc:    "wildcard secret key matches srl version",
+			version: &SrlVersion{"22", "3", "", "", ""},
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
 					"22-6.key": nil,
@@ -167,24 +163,23 @@ func TestInitVersion(t *testing.T) {
 			want: "all.key",
 		},
 		{
-			desc: "secret does not exist",
-			srl: &Srlinux{
-				NOSVersion: &SrlVersion{"22", "3", "", "", ""},
-			},
-			secret: nil,
-			want:   "",
+			desc:    "secret does not exist",
+			version: &SrlVersion{"22", "3", "", "", ""},
+			secret:  nil,
+			want:    "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			tt.srl.InitLicenseKey(context.TODO(), tt.secret)
+			srl := &Srlinux{}
+			srl.InitLicenseKey(context.TODO(), tt.secret, tt.version)
 
-			if !cmp.Equal(tt.srl.LicenseKey, tt.want) {
+			if !cmp.Equal(srl.LicenseKey, tt.want) {
 				t.Fatalf(
 					"%s: actual and expected inputs do not match\nactual: %+v\nexpected:%+v",
 					tt.desc,
-					tt.srl.LicenseKey,
+					srl.LicenseKey,
 					tt.want,
 				)
 			}

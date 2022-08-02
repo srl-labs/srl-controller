@@ -25,21 +25,25 @@ var ErrUpdateFailed = errors.New("operation update failed")
 
 // SrlinuxInterface provides access to the Srlinux CRD.
 type SrlinuxInterface interface {
-	List(ctx context.Context, opts metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error)
-	Get(ctx context.Context, name string, options metav1.GetOptions) (*typesv1alpha1.Srlinux, error)
+	List(ctx context.Context, opts *metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error)
+	Get(
+		ctx context.Context,
+		name string,
+		options *metav1.GetOptions,
+	) (*typesv1alpha1.Srlinux, error)
 	Create(ctx context.Context, srlinux *typesv1alpha1.Srlinux) (*typesv1alpha1.Srlinux, error)
-	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
-	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Delete(ctx context.Context, name string, opts *metav1.DeleteOptions) error
+	Watch(ctx context.Context, opts *metav1.ListOptions) (watch.Interface, error)
 	Unstructured(
 		ctx context.Context,
 		name string,
-		opts metav1.GetOptions,
+		opts *metav1.GetOptions,
 		subresources ...string,
 	) (*unstructured.Unstructured, error)
 	Update(
 		ctx context.Context,
 		obj *unstructured.Unstructured,
-		opts metav1.UpdateOptions,
+		opts *metav1.UpdateOptions,
 	) (*typesv1alpha1.Srlinux, error)
 }
 
@@ -104,14 +108,14 @@ type srlinuxClient struct {
 // List gets a list of SRLinux resources.
 func (s *srlinuxClient) List(
 	ctx context.Context,
-	opts metav1.ListOptions,
+	opts *metav1.ListOptions,
 ) (*typesv1alpha1.SrlinuxList, error) {
 	result := typesv1alpha1.SrlinuxList{}
 	err := s.restClient.
 		Get().
 		Namespace(s.ns).
 		Resource(gvr.Resource).
-		VersionedParams(&opts, scheme.ParameterCodec).
+		VersionedParams(opts, scheme.ParameterCodec).
 		Do(ctx).
 		Into(&result)
 
@@ -122,7 +126,7 @@ func (s *srlinuxClient) List(
 func (s *srlinuxClient) Get(
 	ctx context.Context,
 	name string,
-	opts metav1.GetOptions,
+	opts *metav1.GetOptions,
 ) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 	err := s.restClient.
@@ -130,7 +134,7 @@ func (s *srlinuxClient) Get(
 		Namespace(s.ns).
 		Resource(gvr.Resource).
 		Name(name).
-		VersionedParams(&opts, scheme.ParameterCodec).
+		VersionedParams(opts, scheme.ParameterCodec).
 		Do(ctx).
 		Into(&result)
 
@@ -156,7 +160,7 @@ func (s *srlinuxClient) Create(
 
 func (s *srlinuxClient) Watch(
 	ctx context.Context,
-	opts metav1.ListOptions,
+	opts *metav1.ListOptions,
 ) (watch.Interface, error) {
 	opts.Watch = true
 
@@ -164,16 +168,16 @@ func (s *srlinuxClient) Watch(
 		Get().
 		Namespace(s.ns).
 		Resource(gvr.Resource).
-		VersionedParams(&opts, scheme.ParameterCodec).
+		VersionedParams(opts, scheme.ParameterCodec).
 		Watch(ctx)
 }
 
-func (s *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (s *srlinuxClient) Delete(ctx context.Context, name string, opts *metav1.DeleteOptions) error {
 	return s.restClient.
 		Delete().
 		Namespace(s.ns).
 		Resource(gvr.Resource).
-		VersionedParams(&opts, scheme.ParameterCodec).
+		VersionedParams(opts, scheme.ParameterCodec).
 		Name(name).
 		Do(ctx).
 		Error()
@@ -182,7 +186,7 @@ func (s *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.Del
 func (s *srlinuxClient) Update(
 	ctx context.Context,
 	obj *unstructured.Unstructured,
-	opts metav1.UpdateOptions,
+	_ *metav1.UpdateOptions,
 ) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 
@@ -202,10 +206,10 @@ func (s *srlinuxClient) Update(
 func (s *srlinuxClient) Unstructured(
 	ctx context.Context,
 	name string,
-	opts metav1.GetOptions,
+	opts *metav1.GetOptions,
 	subresources ...string,
 ) (*unstructured.Unstructured, error) {
-	return s.dInterface.Namespace(s.ns).Get(ctx, name, opts, subresources...)
+	return s.dInterface.Namespace(s.ns).Get(ctx, name, *opts, subresources...)
 }
 
 func init() {

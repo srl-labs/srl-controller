@@ -59,8 +59,6 @@ type Srlinux struct {
 	Spec   SrlinuxSpec   `json:"spec,omitempty"`
 	Status SrlinuxStatus `json:"status,omitempty"`
 
-	// parsed NOS version
-	NOSVersion *SrlVersion `json:"nos-version,omitempty"`
 	// license key from license secret that contains a license file for this Srlinux
 	LicenseKey string `json:"license_key,omitempty"`
 }
@@ -154,12 +152,13 @@ func (s *SrlinuxSpec) GetImageVersion() (*SrlVersion, error) {
 func (s *Srlinux) InitLicenseKey(
 	_ context.Context,
 	secret *corev1.Secret,
+	version *SrlVersion,
 ) {
 	if secret == nil {
 		return
 	}
 
-	versionSecretKey := fmt.Sprintf("%s-%s.key", s.NOSVersion.Major, s.NOSVersion.Minor)
+	versionSecretKey := fmt.Sprintf("%s-%s.key", version.Major, version.Minor)
 	if _, ok := secret.Data[versionSecretKey]; ok {
 		s.LicenseKey = versionSecretKey
 
