@@ -2,6 +2,8 @@ version = 1
 
 test_patterns = ["*/*_test.go"]
 
+exclude_patterns = ["*/zz_generated.deepcopy.go"]
+
 [[analyzers]]
 name = "go"
 enabled = true
