@@ -155,17 +155,7 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 	srlinux *typesv1alpha1.Srlinux,
 	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
-	// get NOS version
-	v, err := srlinux.Spec.GetImageVersion()
-	if err != nil {
-		return ctrl.Result{}, true, err
-	}
-
-	log.Info("SR Linux image version parsed", "version", v)
-
-	srlinux.NOSVersion = v
-
-	err = r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
+	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
 		err = createConfigMaps(ctx, r, srlinux, log)
 		if err != nil {

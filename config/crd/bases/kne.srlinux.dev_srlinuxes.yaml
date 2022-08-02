@@ -44,20 +44,6 @@ spec:
             type: string
           metadata:
             type: object
-          nos-version:
-            description: parsed NOS version
-            properties:
-              build:
-                type: string
-              commit:
-                type: string
-              major:
-                type: string
-              minor:
-                type: string
-              patch:
-                type: string
-            type: object
           spec:
             description: SrlinuxSpec defines the desired state of Srlinux.
             properties:
