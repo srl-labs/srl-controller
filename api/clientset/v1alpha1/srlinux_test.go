@@ -70,7 +70,7 @@ func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 	fakeClient := &restfake.RESTClient{
 		NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
 		GroupVersion:         *gv,
-		VersionedAPIPath:     gvr.Version,
+		VersionedAPIPath:     GVR().Version,
 	}
 	cs, err := NewForConfig(&rest.Config{})
 	if err != nil {
@@ -104,7 +104,7 @@ func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 		}
 		return true, uAction.GetObject(), nil
 	})
-	cs.dInterface = f.Resource(gvr)
+	cs.dInterface = f.Resource(GVR())
 	return cs, fakeClient
 }
 
@@ -347,7 +347,7 @@ func TestUnstructured(t *testing.T) {
 			}
 			uObj1 := &srlinuxv1.Srlinux{}
 			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(got.Object, uObj1); err != nil {
-				t.Fatalf("failed to turn reponse into a topology: %v", err)
+				t.Fatalf("failed to turn response into a topology: %v", err)
 			}
 			if !reflect.DeepEqual(uObj1, tt.want) {
 				t.Fatalf("Unstructured(%q) failed: got %+v, want %+v", tt.in, uObj1, tt.want)

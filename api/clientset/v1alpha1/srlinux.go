@@ -45,29 +45,25 @@ type Clientset struct {
 	restClient rest.Interface
 }
 
-var gvr = schema.GroupVersionResource{ // nolint: gochecknoglobals
-	Group:    typesv1alpha1.GroupName,
-	Version:  typesv1alpha1.GroupVersion,
-	Resource: "srlinuxes",
-}
-
 func GVR() schema.GroupVersionResource {
-	return gvr
-}
-
-var groupVersion = &schema.GroupVersion{
-	Group:   typesv1alpha1.GroupName,
-	Version: typesv1alpha1.GroupVersion,
+	return schema.GroupVersionResource{
+		Group:    typesv1alpha1.GroupName,
+		Version:  typesv1alpha1.GroupVersion,
+		Resource: "srlinuxes",
+	}
 }
 
 func GV() *schema.GroupVersion {
-	return groupVersion
+	return &schema.GroupVersion{
+		Group:   typesv1alpha1.GroupName,
+		Version: typesv1alpha1.GroupVersion,
+	}
 }
 
 // NewForConfig returns a new Clientset based on c.
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	config := *c
-	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: gvr.Group, Version: gvr.Version}
+	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GVR().Group, Version: GVR().Version}
 	config.APIPath = "/apis"
 	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
@@ -77,7 +73,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 		return nil, err
 	}
 
-	dInterface := dClient.Resource(gvr)
+	dInterface := dClient.Resource(GVR())
 
 	rClient, err := rest.RESTClientFor(&config)
 	if err != nil {
@@ -114,7 +110,7 @@ func (s *srlinuxClient) List(
 	err := s.restClient.
 		Get().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
+		Resource(GVR().Resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do(ctx).
 		Into(&result)
@@ -132,7 +128,7 @@ func (s *srlinuxClient) Get(
 	err := s.restClient.
 		Get().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
+		Resource(GVR().Resource).
 		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do(ctx).
@@ -150,7 +146,7 @@ func (s *srlinuxClient) Create(
 	err := s.restClient.
 		Post().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
+		Resource(GVR().Resource).
 		Body(srlinux).
 		Do(ctx).
 		Into(&result)
@@ -167,7 +163,7 @@ func (s *srlinuxClient) Watch(
 	return s.restClient.
 		Get().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
+		Resource(GVR().Resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch(ctx)
 }
@@ -176,7 +172,7 @@ func (s *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.Del
 	return s.restClient.
 		Delete().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
+		Resource(GVR().Resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Name(name).
 		Do(ctx).
