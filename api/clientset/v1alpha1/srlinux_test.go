@@ -380,6 +380,7 @@ func TestUnstructured(t *testing.T) {
 		in:   obj2.GetObjectMeta().GetName(),
 		want: obj2,
 	}}
+
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("test")
@@ -428,6 +429,7 @@ func TestUpdate(t *testing.T) {
 		desc: "Valid Topology",
 		want: obj1,
 	}}
+
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			sc := cs.Srlinux("test")
