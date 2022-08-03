@@ -37,8 +37,8 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient client.Client        
-	testEnv   *envtest.Environment 
+	k8sClient client.Client
+	testEnv   *envtest.Environment
 )
 
 func TestAPIs(t *testing.T) {
