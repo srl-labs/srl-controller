@@ -206,5 +206,7 @@ func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts meta
 }
 
 func init() {
-	typesv1alpha1.AddToScheme(scheme.Scheme)
+	if err := typesv1alpha1.AddToScheme(scheme.Scheme); err != nil {
+		panic(err)
+	}
 }

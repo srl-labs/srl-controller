@@ -44,6 +44,7 @@ var (
 			Version:       "1",
 		},
 	}
+
 	obj2 = &srlinuxv1.Srlinux{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Srlinux",
@@ -66,16 +67,20 @@ var (
 
 func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 	t.Helper()
+
 	gv := GV()
+
 	fakeClient := &restfake.RESTClient{
 		NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
 		GroupVersion:         *gv,
 		VersionedAPIPath:     GVR().Version,
 	}
+
 	cs, err := NewForConfig(&rest.Config{})
 	if err != nil {
 		t.Fatalf("NewForConfig() failed: %v", err)
 	}
+
 	objs := []runtime.Object{obj1, obj2}
 	cs.restClient = fakeClient
 	f := dynamicfake.NewSimpleDynamicClient(scheme.Scheme, objs...)
@@ -87,29 +92,38 @@ func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 		case "obj2":
 			return true, obj2, nil
 		}
+
 		return false, nil, nil
 	})
+
 	f.PrependReactor("update", "*", func(action ktest.Action) (bool, runtime.Object, error) {
 		uAction, ok := action.(ktest.UpdateAction)
 		if !ok {
 			return false, nil, nil
 		}
+
 		uObj := uAction.GetObject().(*unstructured.Unstructured)
 		sObj := &srlinuxv1.Srlinux{}
+
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(uObj.Object, sObj); err != nil {
-			return true, nil, fmt.Errorf("failed to covert object: %v", err)
+			return true, nil, fmt.Errorf("failed to convert object: %v", err)
 		}
+
 		if sObj.ObjectMeta.Name == "doesnotexist" {
 			return true, nil, fmt.Errorf("doesnotexist")
 		}
+
 		return true, uAction.GetObject(), nil
 	})
+
 	cs.dInterface = f.Resource(GVR())
+
 	return cs, fakeClient
 }
 
 func TestCreate(t *testing.T) {
 	cs, fakeClient := setUp(t)
+
 	tests := []struct {
 		desc    string
 		resp    *http.Response
@@ -125,16 +139,20 @@ func TestCreate(t *testing.T) {
 		},
 		want: obj1,
 	}}
+
 	for _, tt := range tests {
 		fakeClient.Err = nil
 		if tt.wantErr != "" {
 			fakeClient.Err = fmt.Errorf(tt.wantErr)
 		}
+
 		fakeClient.Resp = tt.resp
+
 		if tt.want != nil {
 			b, _ := json.Marshal(tt.want)
 			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
 		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
 			got, err := tc.Create(context.Background(), tt.want)
@@ -172,25 +190,33 @@ func TestList(t *testing.T) {
 			Items: []srlinuxv1.Srlinux{*obj1, *obj2},
 		},
 	}}
+
 	for _, tt := range tests {
 		fakeClient.Err = nil
+
 		if tt.wantErr != "" {
 			fakeClient.Err = fmt.Errorf(tt.wantErr)
 		}
+
 		fakeClient.Resp = tt.resp
+
 		if tt.want != nil {
 			b, _ := json.Marshal(tt.want)
 			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
 		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
+
 			got, err := tc.List(context.Background(), metav1.ListOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Fatalf("List() failed: got %v, want %v", got, tt.want)
 			}
@@ -215,25 +241,33 @@ func TestGet(t *testing.T) {
 		},
 		want: obj1,
 	}}
+
 	for _, tt := range tests {
 		fakeClient.Err = nil
+
 		if tt.wantErr != "" {
 			fakeClient.Err = fmt.Errorf(tt.wantErr)
 		}
+
 		fakeClient.Resp = tt.resp
+
 		if tt.want != nil {
 			b, _ := json.Marshal(tt.want)
 			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
 		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
+
 			got, err := tc.Get(context.Background(), "test", metav1.GetOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
+
 			want := tt.want.DeepCopy()
 			want.TypeMeta = metav1.TypeMeta{}
 			if !reflect.DeepEqual(got, want) {
@@ -258,12 +292,16 @@ func TestDelete(t *testing.T) {
 			StatusCode: http.StatusOK,
 		},
 	}}
+
 	for _, tt := range tests {
 		fakeClient.Err = nil
+
 		if tt.wantErr != "" {
 			fakeClient.Err = fmt.Errorf(tt.wantErr)
 		}
+
 		fakeClient.Resp = tt.resp
+
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
 			err := tc.Delete(context.Background(), "obj1", metav1.DeleteOptions{})
@@ -288,25 +326,32 @@ func TestWatch(t *testing.T) {
 		desc:    "Error",
 		wantErr: "TEST ERROR",
 	}}
+
 	for _, tt := range tests {
 		fakeClient.Err = nil
+
 		if tt.wantErr != "" {
 			fakeClient.Err = fmt.Errorf(tt.wantErr)
 		}
+
 		fakeClient.Resp = tt.resp
+
 		if tt.want != nil {
 			b, _ := json.Marshal(tt.want)
 			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
 		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
 			w, err := tc.Watch(context.Background(), metav1.ListOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
+
 			e := <-w.ResultChan()
 			if !reflect.DeepEqual(e, tt.want) {
 				t.Fatalf("Watch() failed: got %v, want %v", e, tt.want)
@@ -342,13 +387,16 @@ func TestUnstructured(t *testing.T) {
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
+
 			uObj1 := &srlinuxv1.Srlinux{}
 			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(got.Object, uObj1); err != nil {
 				t.Fatalf("failed to turn response into a topology: %v", err)
 			}
+
 			if !reflect.DeepEqual(uObj1, tt.want) {
 				t.Fatalf("Unstructured(%q) failed: got %+v, want %+v", tt.in, uObj1, tt.want)
 			}
@@ -385,19 +433,24 @@ func TestUpdate(t *testing.T) {
 			sc := cs.Srlinux("test")
 			updateObj := tt.want.DeepCopy()
 			updateObj.Spec.Version = "updated version"
+
 			update, err := runtime.DefaultUnstructuredConverter.ToUnstructured(updateObj)
 			if err != nil {
 				t.Fatalf("failed to generate update: %v", err)
 			}
+
 			got, err := sc.Update(context.Background(), &unstructured.Unstructured{
 				Object: update,
 			}, metav1.UpdateOptions{})
+
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
+
 			want := tt.want.DeepCopy()
 			want.TypeMeta = metav1.TypeMeta{}
 			if !reflect.DeepEqual(got, updateObj) {

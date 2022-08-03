@@ -70,5 +70,6 @@ issues:
         # - structcheck
         # - unused
         # - unparam
+        - goerr113
         - gochecknoglobals
         - funlen
