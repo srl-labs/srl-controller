@@ -22,6 +22,8 @@ jobs:
           go-version: ${{ env.GOVER }}
       - name: kubebuilder tests
         run: make test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
 
   golang-ci-lint:
     runs-on: ubuntu-20.04

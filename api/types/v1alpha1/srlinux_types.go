@@ -72,10 +72,6 @@ type SrlinuxList struct {
 	Items           []Srlinux `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Srlinux{}, &SrlinuxList{})
-}
-
 // GetConfig gets config from srlinux spec.
 func (s *SrlinuxSpec) GetConfig() *NodeConfig {
 	if s.Config != nil {

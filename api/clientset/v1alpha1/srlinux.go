@@ -25,26 +25,13 @@ var ErrUpdateFailed = errors.New("operation update failed")
 
 // SrlinuxInterface provides access to the Srlinux CRD.
 type SrlinuxInterface interface {
-	List(ctx context.Context, opts *metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error)
-	Get(
-		ctx context.Context,
-		name string,
-		options *metav1.GetOptions,
-	) (*typesv1alpha1.Srlinux, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*typesv1alpha1.Srlinux, error)
 	Create(ctx context.Context, srlinux *typesv1alpha1.Srlinux) (*typesv1alpha1.Srlinux, error)
-	Delete(ctx context.Context, name string, opts *metav1.DeleteOptions) error
-	Watch(ctx context.Context, opts *metav1.ListOptions) (watch.Interface, error)
-	Unstructured(
-		ctx context.Context,
-		name string,
-		opts *metav1.GetOptions,
-		subresources ...string,
-	) (*unstructured.Unstructured, error)
-	Update(
-		ctx context.Context,
-		obj *unstructured.Unstructured,
-		opts *metav1.UpdateOptions,
-	) (*typesv1alpha1.Srlinux, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
+	Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*typesv1alpha1.Srlinux, error)
 }
 
 // Interface is the clientset interface for srlinux.
@@ -58,16 +45,25 @@ type Clientset struct {
 	restClient rest.Interface
 }
 
-var gvr = schema.GroupVersionResource{ // nolint: gochecknoglobals
-	Group:    typesv1alpha1.GroupVersion.Group,
-	Version:  typesv1alpha1.GroupVersion.Version,
-	Resource: "srlinuxes",
+func GVR() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    typesv1alpha1.GroupName,
+		Version:  typesv1alpha1.GroupVersion,
+		Resource: "srlinuxes",
+	}
+}
+
+func GV() *schema.GroupVersion {
+	return &schema.GroupVersion{
+		Group:   typesv1alpha1.GroupName,
+		Version: typesv1alpha1.GroupVersion,
+	}
 }
 
 // NewForConfig returns a new Clientset based on c.
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	config := *c
-	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: gvr.Group, Version: gvr.Version}
+	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GVR().Group, Version: GVR().Version}
 	config.APIPath = "/apis"
 	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
@@ -77,7 +73,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 		return nil, err
 	}
 
-	dInterface := dClient.Resource(gvr)
+	dInterface := dClient.Resource(GVR())
 
 	rClient, err := rest.RESTClientFor(&config)
 	if err != nil {
@@ -108,14 +104,14 @@ type srlinuxClient struct {
 // List gets a list of SRLinux resources.
 func (s *srlinuxClient) List(
 	ctx context.Context,
-	opts *metav1.ListOptions,
+	opts metav1.ListOptions, // skipcq: CRT-P0003
 ) (*typesv1alpha1.SrlinuxList, error) {
 	result := typesv1alpha1.SrlinuxList{}
 	err := s.restClient.
 		Get().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
-		VersionedParams(opts, scheme.ParameterCodec).
+		Resource(GVR().Resource).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do(ctx).
 		Into(&result)
 
@@ -126,15 +122,15 @@ func (s *srlinuxClient) List(
 func (s *srlinuxClient) Get(
 	ctx context.Context,
 	name string,
-	opts *metav1.GetOptions,
+	opts metav1.GetOptions,
 ) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 	err := s.restClient.
 		Get().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
+		Resource(GVR().Resource).
 		Name(name).
-		VersionedParams(opts, scheme.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do(ctx).
 		Into(&result)
 
@@ -150,7 +146,7 @@ func (s *srlinuxClient) Create(
 	err := s.restClient.
 		Post().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
+		Resource(GVR().Resource).
 		Body(srlinux).
 		Do(ctx).
 		Into(&result)
@@ -160,24 +156,27 @@ func (s *srlinuxClient) Create(
 
 func (s *srlinuxClient) Watch(
 	ctx context.Context,
-	opts *metav1.ListOptions,
+	opts metav1.ListOptions, // skipcq: CRT-P0003
 ) (watch.Interface, error) {
 	opts.Watch = true
 
 	return s.restClient.
 		Get().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
-		VersionedParams(opts, scheme.ParameterCodec).
+		Resource(GVR().Resource).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch(ctx)
 }
 
-func (s *srlinuxClient) Delete(ctx context.Context, name string, opts *metav1.DeleteOptions) error {
+func (s *srlinuxClient) Delete(ctx context.Context,
+	name string,
+	opts metav1.DeleteOptions, // skipcq: CRT-P0003
+) error {
 	return s.restClient.
 		Delete().
 		Namespace(s.ns).
-		Resource(gvr.Resource).
-		VersionedParams(opts, scheme.ParameterCodec).
+		Resource(GVR().Resource).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Name(name).
 		Do(ctx).
 		Error()
@@ -186,11 +185,11 @@ func (s *srlinuxClient) Delete(ctx context.Context, name string, opts *metav1.De
 func (s *srlinuxClient) Update(
 	ctx context.Context,
 	obj *unstructured.Unstructured,
-	_ *metav1.UpdateOptions,
+	opts metav1.UpdateOptions,
 ) (*typesv1alpha1.Srlinux, error) {
 	result := typesv1alpha1.Srlinux{}
 
-	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, metav1.UpdateOptions{})
+	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -203,15 +202,14 @@ func (s *srlinuxClient) Update(
 	return &result, nil
 }
 
-func (s *srlinuxClient) Unstructured(
-	ctx context.Context,
-	name string,
-	opts *metav1.GetOptions,
+func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts metav1.GetOptions,
 	subresources ...string,
 ) (*unstructured.Unstructured, error) {
-	return s.dInterface.Namespace(s.ns).Get(ctx, name, *opts, subresources...)
+	return s.dInterface.Namespace(s.ns).Get(ctx, name, opts, subresources...)
 }
 
 func init() {
-	_ = typesv1alpha1.AddToScheme(scheme.Scheme)
+	if err := typesv1alpha1.AddToScheme(scheme.Scheme); err != nil {
+		panic(err)
+	}
 }
