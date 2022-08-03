@@ -25,8 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const GroupName = "kne.srlinux.dev"
-const GroupVersion = "v1alpha1"
+const (
+	GroupName    = "kne.srlinux.dev"
+	GroupVersion = "v1alpha1"
+)
 
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 

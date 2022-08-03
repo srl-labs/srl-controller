@@ -389,7 +389,9 @@ func TestUpdate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to generate update: %v", err)
 			}
-			got, err := sc.Update(context.Background(), &unstructured.Unstructured{Object: update}, metav1.UpdateOptions{})
+			got, err := sc.Update(context.Background(), &unstructured.Unstructured{
+				Object: update,
+			}, metav1.UpdateOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
