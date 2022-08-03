@@ -48,7 +48,10 @@ func (r *SrlinuxReconciler) addOrUpdateLicenseSecret(
 	secret := &corev1.Secret{}
 
 	// if secret is already present in the s.Namespace, we need to update it
-	if err := r.Get(ctx, types.NamespacedName{Name: srlLicenseSecretName, Namespace: s.Namespace}, secret); err == nil {
+	if err := r.Get(ctx, types.NamespacedName{
+		Name:      srlLicenseSecretName,
+		Namespace: s.Namespace,
+	}, secret); err == nil {
 		return r.updateLicenseSecret(ctx, s, log, secret)
 	}
 
