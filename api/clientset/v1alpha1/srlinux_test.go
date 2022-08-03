@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/h-fam/errdiff"
 	"github.com/kr/pretty"
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
@@ -83,6 +84,7 @@ func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 
 	objs := []runtime.Object{obj1, obj2}
 	cs.restClient = fakeClient
+
 	f := dynamicfake.NewSimpleDynamicClient(scheme.Scheme, objs...)
 	f.PrependReactor("get", "*", func(action ktest.Action) (bool, runtime.Object, error) {
 		gAction := action.(ktest.GetAction)
@@ -156,16 +158,19 @@ func TestCreate(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
 			got, err := tc.Create(context.Background(), tt.want)
+
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
-			want := tt.want.DeepCopy()
-			want.TypeMeta = metav1.TypeMeta{}
-			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("Create(%+v) failed: diff\n%s", tt.want, pretty.Diff(got, want))
+
+			// want := tt.want.DeepCopy()
+			// want.TypeMeta = metav1.TypeMeta{}
+			if !cmp.Equal(got, tt.want) {
+				t.Fatalf("Create (got %+v) failed (want %+v): diff\n%s", got, tt.want, pretty.Diff(got, tt.want))
 			}
 		})
 	}
