@@ -30,11 +30,11 @@ const (
 	GroupVersion = "v1alpha1"
 )
 
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
-
+// nolint: gochecknoglobals
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
+	AddToScheme        = SchemeBuilder.AddToScheme
+	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {
@@ -43,5 +43,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&SrlinuxList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+
 	return nil
 }
