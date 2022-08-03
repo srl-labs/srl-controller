@@ -1,4 +1,4 @@
-GOFUMPT_CMD := docker run --rm -it -v $(shell pwd):/work ghcr.io/hellt/gofumpt:0.3.1
+GOFUMPT_CMD := docker run --rm -it -e GOFUMPT_SPLIT_LONG_LINES=on -v $(shell pwd):/work ghcr.io/hellt/gofumpt:0.3.1
 GOFUMPT_FLAGS := -l -w .
 
 GODOT_CMD := docker run --rm -it -v $(shell pwd):/work ghcr.io/hellt/godot:1.4.11
@@ -13,14 +13,14 @@ GOLANGCI_FLAGS := --config ./.github/workflows/linters/.golangci.yml run -v --fi
 
 # when running in a CI env we use locally installed bind
 ifdef CI
-	GOFUMPT_CMD := gofumpt
+	GOFUMPT_CMD := GOFUMPT_SPLIT_LONG_LINES=on gofumpt
 	GODOT_CMD := godot
 	GOLINES_CMD := golines
 	GOLANGCI_CMD := golangci-lint
 endif
 
 
-format: gofumpt godot golines # apply Go formatters
+format: gofumpt godot # apply Go formatters
 
 gofumpt:
 	${GOFUMPT_CMD} ${GOFUMPT_FLAGS}
