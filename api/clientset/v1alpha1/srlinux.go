@@ -104,7 +104,7 @@ type srlinuxClient struct {
 // List gets a list of SRLinux resources.
 func (s *srlinuxClient) List(
 	ctx context.Context,
-	opts metav1.ListOptions,
+	opts metav1.ListOptions, // skipcq: CRT-P0003
 ) (*typesv1alpha1.SrlinuxList, error) {
 	result := typesv1alpha1.SrlinuxList{}
 	err := s.restClient.
@@ -156,7 +156,7 @@ func (s *srlinuxClient) Create(
 
 func (s *srlinuxClient) Watch(
 	ctx context.Context,
-	opts metav1.ListOptions,
+	opts metav1.ListOptions, // skipcq: CRT-P0003
 ) (watch.Interface, error) {
 	opts.Watch = true
 
@@ -168,7 +168,10 @@ func (s *srlinuxClient) Watch(
 		Watch(ctx)
 }
 
-func (s *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (s *srlinuxClient) Delete(ctx context.Context,
+	name string,
+	opts metav1.DeleteOptions, // skipcq: CRT-P0003
+) error {
 	return s.restClient.
 		Delete().
 		Namespace(s.ns).
