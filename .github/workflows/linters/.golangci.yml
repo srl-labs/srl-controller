@@ -33,7 +33,6 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - lll
     - misspell
     - nakedret
     - noctx
@@ -59,9 +58,6 @@ linters:
     - nestif
     - prealloc
     - wsl
-linters-settings:
-  lll:
-    line-length: 140
 
 issues:
   # https://github.com/golangci/golangci-lint/issues/2439#issuecomment-1002912465
