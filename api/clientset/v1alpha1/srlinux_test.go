@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/h-fam/errdiff"
-	"github.com/kr/pretty"
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -63,8 +63,14 @@ var (
 			Version:       "2",
 		},
 	}
+
+	// ignoreTypeMetaOpt is cmpopt option that is used to discard TypeMeta field
+	// when comparing Srlinux structs. This is required since fakeRest server will never populate
+	// those fields, and those fields may be present in the test's want object.
+	ignoreTypeMetaOpt = cmpopts.IgnoreFields(srlinuxv1.Srlinux{}, "TypeMeta")
 )
 
+// setUp creates a Srlinux clientset and patches its rest and dynamic clients.
 func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 	t.Helper()
 
@@ -81,8 +87,11 @@ func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 		t.Fatalf("NewForConfig() failed: %v", err)
 	}
 
+	// objects will be added to the object tracker when the fake dynamic interface is created,
+	// this allows to unit test methods that require processing of unstructured data.
 	objs := []runtime.Object{obj1, obj2}
 	cs.restClient = fakeClient
+
 	f := dynamicfake.NewSimpleDynamicClient(scheme.Scheme, objs...)
 	f.PrependReactor("get", "*", func(action ktest.Action) (bool, runtime.Object, error) {
 		gAction := action.(ktest.GetAction)
@@ -141,13 +150,18 @@ func TestCreate(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		fakeClient.Err = nil
+		fakeClient.Err = nil // set Err to nil on each case start
+		// if we expect an error to be returned from the rest server
+		// we set the fake rest client error to it
+		// thus it will be returned for every rest call to that server.
 		if tt.wantErr != "" {
 			fakeClient.Err = fmt.Errorf(tt.wantErr)
 		}
 
 		fakeClient.Resp = tt.resp
 
+		// rest unit tests keep no state on the server side
+		// instead, whatever we want to be returned we populate as a resp.Body
 		if tt.want != nil {
 			b, _ := json.Marshal(tt.want)
 			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
@@ -156,16 +170,17 @@ func TestCreate(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
 			got, err := tc.Create(context.Background(), tt.want)
+
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
-			want := tt.want.DeepCopy()
-			want.TypeMeta = metav1.TypeMeta{}
-			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("Create(%+v) failed: diff\n%s", tt.want, pretty.Diff(got, want))
+
+			if s := cmp.Diff(got, tt.want, ignoreTypeMetaOpt); s != "" {
+				t.Fatalf("Create failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
 			}
 		})
 	}
@@ -217,8 +232,8 @@ func TestList(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Fatalf("List() failed: got %v, want %v", got, tt.want)
+			if s := cmp.Diff(got, tt.want, ignoreTypeMetaOpt); s != "" {
+				t.Fatalf("List failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
 			}
 		})
 	}
@@ -268,10 +283,8 @@ func TestGet(t *testing.T) {
 				return
 			}
 
-			want := tt.want.DeepCopy()
-			want.TypeMeta = metav1.TypeMeta{}
-			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("Get() failed: got %v, want %v", got, want)
+			if s := cmp.Diff(got, tt.want, ignoreTypeMetaOpt); s != "" {
+				t.Fatalf("Get failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
 			}
 		})
 	}
@@ -304,10 +317,12 @@ func TestDelete(t *testing.T) {
 
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("foo")
+
 			err := tc.Delete(context.Background(), "obj1", metav1.DeleteOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
+
 			if tt.wantErr != "" {
 				return
 			}
@@ -352,9 +367,9 @@ func TestWatch(t *testing.T) {
 				return
 			}
 
-			e := <-w.ResultChan()
-			if !reflect.DeepEqual(e, tt.want) {
-				t.Fatalf("Watch() failed: got %v, want %v", e, tt.want)
+			got := <-w.ResultChan()
+			if s := cmp.Diff(got, tt.want); s != "" {
+				t.Fatalf("Watch failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
 			}
 		})
 	}
@@ -372,11 +387,11 @@ func TestUnstructured(t *testing.T) {
 		in:      "missingObj",
 		wantErr: `"missingObj" not found`,
 	}, {
-		desc: "Valid Node",
+		desc: "Valid Node 1",
 		in:   obj1.GetObjectMeta().GetName(),
 		want: obj1,
 	}, {
-		desc: "Valid Node",
+		desc: "Valid Node 2",
 		in:   obj2.GetObjectMeta().GetName(),
 		want: obj2,
 	}}
@@ -398,8 +413,8 @@ func TestUnstructured(t *testing.T) {
 				t.Fatalf("failed to turn response into a topology: %v", err)
 			}
 
-			if !reflect.DeepEqual(uObj1, tt.want) {
-				t.Fatalf("Unstructured(%q) failed: got %+v, want %+v", tt.in, uObj1, tt.want)
+			if s := cmp.Diff(uObj1, tt.want); s != "" {
+				t.Fatalf("Unstructured (%q) failed.\nGot: %+v\nWant: %+v\nDiff\n%s", tt.in, uObj1, tt.want, s)
 			}
 		})
 	}
@@ -426,7 +441,7 @@ func TestUpdate(t *testing.T) {
 		},
 		wantErr: "doesnotexist",
 	}, {
-		desc: "Valid Topology",
+		desc: "Valid Node",
 		want: obj1,
 	}}
 
@@ -453,10 +468,8 @@ func TestUpdate(t *testing.T) {
 				return
 			}
 
-			want := tt.want.DeepCopy()
-			want.TypeMeta = metav1.TypeMeta{}
-			if !reflect.DeepEqual(got, updateObj) {
-				t.Fatalf("Update() failed: got %+v, want %+v", got, want)
+			if s := cmp.Diff(got, updateObj); s != "" {
+				t.Fatalf("Update failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, updateObj, s)
 			}
 		})
 	}

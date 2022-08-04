@@ -6,7 +6,6 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-cmp v0.5.8
 	github.com/h-fam/errdiff v1.0.2
-	github.com/kr/pretty v0.2.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/openconfig/kne v0.1.1
@@ -41,7 +40,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
