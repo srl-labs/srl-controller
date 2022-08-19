@@ -1,4 +1,8 @@
 #!/bin/bash
+# Copyright 2022 Nokia
+# Licensed under the BSD 3-Clause License.
+# SPDX-License-Identifier: BSD-3-Clause
+
 # this script is used to generate random OUI for base mac entry of an SR Linux topology yaml file
 
 # template_path="/tmp/topo-template.yml"

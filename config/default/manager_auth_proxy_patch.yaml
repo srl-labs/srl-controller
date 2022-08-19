@@ -1,3 +1,7 @@
+# Copyright 2022 Nokia
+# Licensed under the BSD 3-Clause License.
+# SPDX-License-Identifier: BSD-3-Clause
+
 # This patch inject a sidecar container which is a HTTP proxy for the
 # controller manager, it performs RBAC authorization against the Kubernetes API using SubjectAccessReviews.
 apiVersion: apps/v1
