@@ -1,3 +1,7 @@
+# Copyright 2022 Nokia
+# Licensed under the BSD 3-Clause License.
+# SPDX-License-Identifier: BSD-3-Clause
+
 # this config maps contains an entrypoint script that ensures that we first call the
 # topomac script before executing the main entrypoint
 apiVersion: v1

@@ -1,3 +1,7 @@
+// Copyright 2022 Nokia
+// Licensed under the BSD 3-Clause License.
+// SPDX-License-Identifier: BSD-3-Clause
+
 // Package v1alpha1 is an v1alpha version of a Clientset for SR Linux customer resource.
 package v1alpha1
 
