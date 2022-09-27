@@ -116,7 +116,16 @@ To build `srl-controller` container image execute:
 
 ```bash
 # don't forget to set the correct tag
+# for example make docker-build IMG=ghcr.io/srl-labs/srl-controller:0.4.3
 make docker-build IMG=ghcr.io/srl-labs/srl-controller:${tag}
 ```
 
-Then upload the image to the registry and update the controller version in [manager/kustomization.yaml](config/manager/kustomization.yaml).
+> build process will try to remove license headers for some manifests, discard those changes.
+
+Next update the controller version in [manager/kustomization.yaml](config/manager/kustomization.yaml) kustomization file to match the newly built version.
+
+Finally, upload the container image to the registry:
+
+```bash
+docker push ghcr.io/srl-labs/srl-controller:${tag}
+```
