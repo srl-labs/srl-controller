@@ -15,4 +15,8 @@ data:
 
     sudo bash /tmp/topomac/topomac.sh
     echo "topomac.sh" script finished
+
+    # copy potentially provided startup config files
+    sudo cp -L /tmp/startup-config/* /etc/opt/srlinux/
+
     exec /entrypoint.sh "$@"
