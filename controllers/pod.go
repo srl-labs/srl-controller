@@ -173,7 +173,7 @@ func createVolumes(s *typesv1a1.Srlinux) []corev1.Volume {
 // if the (startup) config file was provided in the spec.
 // Volume mounts happens in the /tmp/startup-config directory and not in the /etc/opt/srlinux
 // because we need to support renaming operations on config.json, and bind mount paths are not allowing this.
-// Hence the temp location, from which the config file is then copied to /etc/opt/srlinux by the kne-entrypoint.sh
+// Hence the temp location, from which the config file is then copied to /etc/opt/srlinux by the kne-entrypoint.sh.
 func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger) {
 	// initialize config path and config file variables
 	cfgPath := defaultConfigPath
