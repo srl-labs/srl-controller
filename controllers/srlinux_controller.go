@@ -42,9 +42,9 @@ const (
 	entrypointVolMntSubPath = "kne-entrypoint.sh"
 	entrypointCfgMapName    = "srlinux-kne-entrypoint"
 
-	// default path to a startup config file
+	// default path to a startup config directory
 	// the default for config file name resides within kne.
-	defaultConfigPath = "/etc/opt/srlinux"
+	defaultConfigPath = "/tmp/startup-config"
 
 	fileMode777 = 0o777
 

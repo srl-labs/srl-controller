@@ -170,15 +170,16 @@ func createVolumes(s *typesv1a1.Srlinux) []corev1.Volume {
 }
 
 // handleStartupConfig creates volume mounts and volumes for srlinux pod
-// if the config file was provided in the spec.
+// if the (startup) config file was provided in the spec.
+// Volume mounts happens in the /tmp/startup-config directory and not in the /etc/opt/srlinux
+// because we need to support renaming operations on config.json, and bind mount paths are not allowing this.
+// Hence the temp location, from which the config file is then copied to /etc/opt/srlinux by the kne-entrypoint.sh.
 func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger) {
 	// initialize config path and config file variables
 	cfgPath := defaultConfigPath
 	if p := s.Spec.GetConfig().ConfigPath; p != "" {
 		cfgPath = p
 	}
-
-	cfgFile := s.Spec.GetConfig().ConfigFile
 
 	// only create startup config mounts if the config data was set in kne
 	if s.Spec.Config.ConfigDataPresent {
@@ -187,7 +188,7 @@ func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger)
 			"volume.name",
 			"startup-config-volume",
 			"mount.path",
-			cfgPath+"/"+cfgFile,
+			cfgPath,
 		)
 
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
@@ -205,9 +206,8 @@ func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger)
 			pod.Spec.Containers[0].VolumeMounts,
 			corev1.VolumeMount{
 				Name:      "startup-config-volume",
-				MountPath: cfgPath + "/" + cfgFile,
-				SubPath:   cfgFile,
-				ReadOnly:  true,
+				MountPath: cfgPath,
+				ReadOnly:  false,
 			},
 		)
 	}

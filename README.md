@@ -4,7 +4,7 @@ This is a k8s controller for running and managing SR Linux nodes launched from [
 
 ## Install
 
-To install the latest version of this controller on a cluster referenced in `~/.kube/config` issue the following command:
+To install the latest version of this controller on a cluster referenced in `~/.kube/config`, issue the following command:
 
 ```bash
 # latest version
@@ -54,7 +54,7 @@ kubectl delete -k https://github.com/srl-labs/srl-controller/config/default
 
 To run this controller in a test cluster deployed with [`kne`](https://github.com/openconfig/kne) and [`kind`](https://kind.sigs.k8s.io/) follow the steps outlined in the [KNE repository](https://github.com/openconfig/kne/tree/main/docs).
 
-Once the kne+kind cluster is created, a [demo topology with two SR Linux nodes](https://github.com/openconfig/kne/blob/db5fe5be01a1b6b65bd79e740e2c819c5aeb50b0/examples/srlinux/2node-srl-with-config.pbtxt) may be deployed as follows:
+Once the kne+kind cluster is created and the `srl-controller` is installed onto it, a [demo topology with two SR Linux nodes](https://github.com/openconfig/kne/blob/db5fe5be01a1b6b65bd79e740e2c819c5aeb50b0/examples/srlinux/2node-srl-with-config.pbtxt) can be deployed as follows:
 
 ```bash
 kne create examples/srlinux/2node-srl-with-config.pbtxt
@@ -73,12 +73,17 @@ To connect with SSH to the `r1` node, use `ssh admin@172.19.0.50` command.
 
 ### Loading images to kind cluster
 
-[Public SR Linux container image](https://github.com/nokia/srlinux-container-image) will be pulled by kind automatically, if Internet access is present. Images which are not available publicy can be uploaded to kind manually:
+[Public SR Linux container image](https://github.com/nokia/srlinux-container-image) will be pulled by kind automatically if Internet access is present. Images which are not available publicy can be uploaded to kind manually:
 
 ```bash
 # default kne kind cluster name is `kne`
 # which is the last argument in the command
+
+# load locally available container image
 kind load docker-image srlinux:0.0.0-38566 --name kne
+
+# load publicly available container image
+kind load docker-image ghcr.io/nokia/srlinux:22.6.4 --name kne
 ```
 
 ## Using license files
@@ -112,7 +117,7 @@ This repo contains a clientset for API access to the `Srlinux` custom resource. 
 
 ## Building `srl-controller` container image
 
-To build `srl-controller` container image execute:
+To build `srl-controller` container image, execute:
 
 ```bash
 # don't forget to set the correct tag
@@ -129,3 +134,23 @@ Finally, upload the container image to the registry:
 ```bash
 docker push ghcr.io/srl-labs/srl-controller:${tag}
 ```
+
+## Developers guide
+
+Developers should deploy the controller onto a cluster from the source code. Ensure that the `srl-controller` is [uninstalled](#uninstall) from the cluster before proceeding.
+
+Install the Srlinux CRDs onto the cluster
+
+```
+make install
+```
+
+To build and run the controller from the source code:
+
+```
+make run
+```
+
+Controller's log printed to stdout/stderr. It is possible to deploy topologies with `kne create` now.
+
+Make changes to the controller code-base, and re-run `make run` to see the changes in effect.
