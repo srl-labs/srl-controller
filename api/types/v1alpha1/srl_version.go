@@ -29,9 +29,9 @@ func parseVersionString(s string) (*SrlVersion, error) {
 		return &SrlVersion{"0", "", "", "", ""}, nil
 	}
 
-	// https://regex101.com/r/eWS6Ms/1
+	// https://regex101.com/r/eWS6Ms/3
 	re := regexp.MustCompile(
-		`^v?(?P<major>\d{1,3})\.(?P<minor>\d{1,2})\.?(?P<patch>\d{1,2})?-?(?P<build>\d{1,10})?-?(?P<commit>\S+)?`,
+		`(?P<major>\d{1,3})\.(?P<minor>\d{1,2})\.?(?P<patch>\d{1,2})?-?(?P<build>\d{1,10})?-?(?P<commit>\S+)?`,
 	)
 
 	v := re.FindStringSubmatch(s)
