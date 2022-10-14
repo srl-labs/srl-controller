@@ -95,7 +95,7 @@ func TestGetImageVersion(t *testing.T) {
 		{
 			desc: "invalid version is present",
 			spec: &SrlinuxSpec{
-				Version: "abc21.11.1",
+				Version: "abc",
 				Config:  &NodeConfig{Image: "ghcr.io/nokia/srlinux:somever"},
 			},
 			err: ErrVersionParse,
@@ -110,7 +110,7 @@ func TestGetImageVersion(t *testing.T) {
 		{
 			desc: "version is not present, invalid image tag is given",
 			spec: &SrlinuxSpec{
-				Config: &NodeConfig{Image: "ghcr.io/nokia/srlinux:21"},
+				Config: &NodeConfig{Image: "ghcr.io/nokia/srlinux:somesrl"},
 			},
 			err: ErrVersionParse,
 		},

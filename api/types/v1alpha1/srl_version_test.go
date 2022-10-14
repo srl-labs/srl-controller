@@ -64,6 +64,11 @@ func TestParseVersionString(t *testing.T) {
 			want: &SrlVersion{"0", "0", "0", "34652", ""},
 		},
 		{
+			desc: "version_0.0.0-34652",
+			got:  "version_0.0.0-34652",
+			want: &SrlVersion{"0", "0", "0", "34652", ""},
+		},
+		{
 			desc: "latest",
 			got:  "latest",
 			want: &SrlVersion{"0", "", "", "", ""},
