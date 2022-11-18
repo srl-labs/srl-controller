@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+var (
+	engineeringVersions = []string{
+		"",
+		"latest",
+		"ga",
+	}
+)
+
 // ErrVersionParse is an error which is raised when srlinux version is failed to parse.
 var ErrVersionParse = errors.New("version parsing failed")
 
@@ -23,10 +31,11 @@ type SrlVersion struct {
 }
 
 func parseVersionString(s string) (*SrlVersion, error) {
-	// for latest or missing tag we consider the version to be an engineering build
-	// with major = 0
-	if strings.ToLower(s) == "latest" || s == "" {
-		return &SrlVersion{"0", "", "", "", ""}, nil
+	// Check if the version string is an engineering build with major = 0
+	for _, ver := range engineeringVersions {
+		if ver == strings.ToLower(s) {
+			return &SrlVersion{"0", "", "", "", ""}, nil
+		}
 	}
 
 	// https://regex101.com/r/eWS6Ms/3
