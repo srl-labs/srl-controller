@@ -17,4 +17,4 @@ kind: Kustomization
 images:
   - name: controller
     newName: ghcr.io/srl-labs/srl-controller
-    newTag: 0.4.5
+    newTag: 0.4.6
