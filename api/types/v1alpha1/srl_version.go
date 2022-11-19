@@ -23,10 +23,12 @@ type SrlVersion struct {
 }
 
 func parseVersionString(s string) (*SrlVersion, error) {
-	// for latest or missing tag we consider the version to be an engineering build
-	// with major = 0
-	if strings.ToLower(s) == "latest" || s == "" {
-		return &SrlVersion{"0", "", "", "", ""}, nil
+	// Check if the version string is an engineering build with major = 0
+	engineeringVersions := []string{"", "latest", "ga"}
+	for _, ver := range engineeringVersions {
+		if ver == strings.ToLower(s) {
+			return &SrlVersion{"0", "", "", "", ""}, nil
+		}
 	}
 
 	// https://regex101.com/r/eWS6Ms/3
