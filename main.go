@@ -13,14 +13,11 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
 	"github.com/srl-labs/srl-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -28,7 +25,6 @@ import (
 const ctrlManagerPort = 9443
 
 var (
-	scheme   = runtime.NewScheme()        // nolint: gochecknoglobals
 	setupLog = ctrl.Log.WithName("setup") // nolint: gochecknoglobals
 
 	//go:embed manifests/variants/*
@@ -36,9 +32,6 @@ var (
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(typesv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 	// make manifests available to controllers package
@@ -81,7 +74,7 @@ func main() { // nolint: funlen
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 srlinuxv1.Scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   ctrlManagerPort,
 		HealthProbeBindAddress: probeAddr,
