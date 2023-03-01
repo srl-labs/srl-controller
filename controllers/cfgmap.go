@@ -26,17 +26,17 @@ func createConfigMaps(
 	s *typesv1alpha1.Srlinux,
 	log logr.Logger,
 ) error {
-	err := createVariantsCfgMap(ctx, r, s.Namespace, log)
+	err := createVariantsCfgMap(ctx, r, s.ObjectMeta.Namespace, log)
 	if err != nil {
 		return err
 	}
 
-	err = createTopomacScriptCfgMap(ctx, r, s.Namespace, log)
+	err = createTopomacScriptCfgMap(ctx, r, s.ObjectMeta.Namespace, log)
 	if err != nil {
 		return err
 	}
 
-	err = createKNEEntrypointCfgMap(ctx, r, s.Namespace, log)
+	err = createKNEEntrypointCfgMap(ctx, r, s.ObjectMeta.Namespace, log)
 
 	return err
 }
