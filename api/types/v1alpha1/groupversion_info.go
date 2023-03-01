@@ -20,17 +20,15 @@ const (
 
 // nolint: gochecknoglobals
 var (
-	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme        = SchemeBuilder.AddToScheme
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
+	Scheme             = runtime.NewScheme()
 )
 
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+func init() {
+	Scheme.AddKnownTypes(SchemeGroupVersion,
 		&Srlinux{},
 		&SrlinuxList{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-
-	return nil
+	metav1.AddToGroupVersion(Scheme, SchemeGroupVersion)
+	metav1.AddMetaToScheme(Scheme)
 }
