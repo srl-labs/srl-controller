@@ -112,6 +112,7 @@ func newFakeWatch(e []watch.Event) *fakeWatch {
 	}()
 	return f
 }
+
 func (f *fakeWatch) Stop() {
 	close(f.done)
 }
@@ -305,7 +306,9 @@ func TestWatch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("test")
-			w, err := tc.Watch(context.Background(), metav1.ListOptions{ResourceVersion: tt.ver})
+			w, err := tc.Watch(context.Background(), metav1.ListOptions{
+				ResourceVersion: tt.ver,
+			})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
@@ -352,7 +355,9 @@ func TestUpdate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to generate update: %v", err)
 			}
-			got, err := tc.Update(context.Background(), &unstructured.Unstructured{Object: update}, metav1.UpdateOptions{})
+			got, err := tc.Update(context.Background(), &unstructured.Unstructured{
+				Object: update,
+			}, metav1.UpdateOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
