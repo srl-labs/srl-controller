@@ -18,7 +18,7 @@ const (
 	GroupVersion = "v1alpha1"
 )
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var (
 	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
 	AddToScheme        = SchemeBuilder.AddToScheme

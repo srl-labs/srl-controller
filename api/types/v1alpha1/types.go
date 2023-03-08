@@ -10,7 +10,7 @@ const (
 )
 
 var (
-	// nolint: gochecknoglobals
+	//nolint:gochecknoglobals
 	defaultCmd = []string{
 		"/tini",
 		"--",
@@ -19,7 +19,7 @@ var (
 		"/kne-entrypoint.sh",
 	}
 
-	// nolint: gochecknoglobals
+	//nolint:gochecknoglobals
 	defaultArgs = []string{
 		"sudo",
 		"bash",
@@ -27,7 +27,7 @@ var (
 		"touch /.dockerenv && /opt/srlinux/bin/sr_linux",
 	}
 
-	// nolint: gochecknoglobals
+	//nolint:gochecknoglobals
 	defaultConstraints = map[string]string{
 		"cpu":    "0.5",
 		"memory": "1Gi",

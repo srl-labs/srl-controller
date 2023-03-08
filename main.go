@@ -28,8 +28,8 @@ import (
 const ctrlManagerPort = 9443
 
 var (
-	scheme   = runtime.NewScheme()        // nolint: gochecknoglobals
-	setupLog = ctrl.Log.WithName("setup") // nolint: gochecknoglobals
+	scheme   = runtime.NewScheme()        //nolint:gochecknoglobals
+	setupLog = ctrl.Log.WithName("setup") //nolint:gochecknoglobals
 
 	//go:embed manifests/variants/*
 	variantsFS embed.FS
@@ -45,7 +45,7 @@ func init() {
 	controllers.VariantsFS = variantsFS
 }
 
-func main() { // nolint: funlen
+func main() { //nolint:funlen
 	var metricsAddr string
 
 	var enableLeaderElection bool

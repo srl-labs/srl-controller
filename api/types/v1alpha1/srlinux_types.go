@@ -121,7 +121,7 @@ func (s *SrlinuxSpec) GetImageVersion() (*SrlVersion, error) {
 	var tag string
 
 	split := strings.Split(s.GetImage(), ":")
-	if len(split) == 2 { // nolint: gomnd
+	if len(split) == 2 { //nolint:gomnd
 		tag = split[1]
 	}
 
