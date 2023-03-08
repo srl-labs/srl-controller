@@ -84,6 +84,10 @@ func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
 		NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
 		GroupVersion:         *gv,
 		VersionedAPIPath:     GVR().Version,
+		Err:                  nil,
+		Req:                  &http.Request{},
+		Client:               &http.Client{},
+		Resp:                 &http.Response{},
 	}
 
 	cs, err := NewForConfig(&rest.Config{})
