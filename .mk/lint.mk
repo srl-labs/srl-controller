@@ -7,7 +7,7 @@ GODOT_FLAGS := -w .
 GOLINES_CMD := docker run --rm -it -v $(shell pwd):/work ghcr.io/hellt/golines:0.10.0 golines
 GOLINES_FLAGS := -w .
 
-GOLANGCI_CMD := docker run -it --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:v1.47.2 golangci-lint
+GOLANGCI_CMD := docker run -it --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:v1.51.2 golangci-lint
 GOLANGCI_FLAGS := --config ./.github/workflows/linters/.golangci.yml run -v --fix
 
 
