@@ -19,6 +19,9 @@ RUN go mod download
 COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
+# srl-controller specific manifests that we embed in the controller binary
+# such as configmaps with entrypoints, topology files and auxiliary scripts.
+COPY manifests/ manifests/
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
