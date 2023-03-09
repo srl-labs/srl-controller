@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	"github.com/srl-labs/srl-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -38,7 +38,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(typesv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(srlinuxv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 	// make manifests available to controllers package

@@ -2,6 +2,8 @@
 
 This is a k8s controller for running and managing SR Linux nodes launched from [openconfig/kne](https://github.com/openconfig/kne) topology.
 
+Built with [kubebuilder v3.8.0](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v3.8.0).
+
 ## Install
 
 To install the latest version of this controller on a cluster referenced in `~/.kube/config`, issue the following command:

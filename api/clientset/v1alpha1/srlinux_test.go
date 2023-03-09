@@ -16,7 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/h-fam/errdiff"
-	srlinuxv1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ktest "k8s.io/client-go/testing"

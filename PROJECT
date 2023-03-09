@@ -11,6 +11,6 @@ resources:
     domain: srlinux.dev
     group: kne
     kind: Srlinux
-    path: github.com/srl-labs/srl-controller/api/v1alpha1
-    version: v1alpha1
+    path: github.com/srl-labs/srl-controller/api/v1
+    version: v1
 version: "3"

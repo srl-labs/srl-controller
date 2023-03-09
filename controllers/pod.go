@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-logr/logr"
 	knenode "github.com/openconfig/kne/topo/node"
-	typesv1a1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -29,7 +29,7 @@ const (
 // podForSrlinux returns a srlinux Pod object.
 func (r *SrlinuxReconciler) podForSrlinux(
 	ctx context.Context,
-	s *typesv1a1.Srlinux,
+	s *srlinuxv1.Srlinux,
 ) *corev1.Pod {
 	log := log.FromContext(ctx)
 
@@ -59,7 +59,7 @@ func (r *SrlinuxReconciler) podForSrlinux(
 	return pod
 }
 
-func createObjectMeta(s *typesv1a1.Srlinux) metav1.ObjectMeta {
+func createObjectMeta(s *srlinuxv1.Srlinux) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      s.Name,
 		Namespace: s.Namespace,
@@ -70,7 +70,7 @@ func createObjectMeta(s *typesv1a1.Srlinux) metav1.ObjectMeta {
 	}
 }
 
-func createInitContainers(s *typesv1a1.Srlinux) []corev1.Container {
+func createInitContainers(s *srlinuxv1.Srlinux) []corev1.Container {
 	return []corev1.Container{{
 		Name:  fmt.Sprintf("init-%s", s.Name),
 		Image: initContainerName,
@@ -82,7 +82,7 @@ func createInitContainers(s *typesv1a1.Srlinux) []corev1.Container {
 	}}
 }
 
-func createContainers(s *typesv1a1.Srlinux) []corev1.Container {
+func createContainers(s *srlinuxv1.Srlinux) []corev1.Container {
 	return []corev1.Container{{
 		Name:            s.Name,
 		Image:           s.Spec.GetImage(),
@@ -99,7 +99,7 @@ func createContainers(s *typesv1a1.Srlinux) []corev1.Container {
 	}}
 }
 
-func createAffinity(s *typesv1a1.Srlinux) *corev1.Affinity {
+func createAffinity(s *srlinuxv1.Srlinux) *corev1.Affinity {
 	return &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
@@ -121,7 +121,7 @@ func createAffinity(s *typesv1a1.Srlinux) *corev1.Affinity {
 	}
 }
 
-func createVolumes(s *typesv1a1.Srlinux) []corev1.Volume {
+func createVolumes(s *srlinuxv1.Srlinux) []corev1.Volume {
 	vols := []corev1.Volume{
 		{
 			Name: variantsVolName,
@@ -174,7 +174,7 @@ func createVolumes(s *typesv1a1.Srlinux) []corev1.Volume {
 // Volume mounts happens in the /tmp/startup-config directory and not in the /etc/opt/srlinux
 // because we need to support renaming operations on config.json, and bind mount paths are not allowing this.
 // Hence the temp location, from which the config file is then copied to /etc/opt/srlinux by the kne-entrypoint.sh.
-func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger) {
+func handleStartupConfig(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger) {
 	// initialize config path and config file variables
 	cfgPath := defaultConfigPath
 	if p := s.Spec.GetConfig().ConfigPath; p != "" {
@@ -213,7 +213,7 @@ func handleStartupConfig(s *typesv1a1.Srlinux, pod *corev1.Pod, log logr.Logger)
 	}
 }
 
-func createVolumeMounts(s *typesv1a1.Srlinux) []corev1.VolumeMount {
+func createVolumeMounts(s *srlinuxv1.Srlinux) []corev1.VolumeMount {
 	vms := []corev1.VolumeMount{
 		{
 			Name:      variantsVolName,
@@ -237,7 +237,7 @@ func createVolumeMounts(s *typesv1a1.Srlinux) []corev1.VolumeMount {
 	return vms
 }
 
-func createLicenseVolume(s *typesv1a1.Srlinux) corev1.Volume {
+func createLicenseVolume(s *srlinuxv1.Srlinux) corev1.Volume {
 	return corev1.Volume{
 		Name: licensesVolName,
 		VolumeSource: corev1.VolumeSource{

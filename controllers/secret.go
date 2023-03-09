@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +23,7 @@ var ErrLicenseProvisioning = errors.New("license provisioning failed")
 // createSecrets creates secrets such as srlinux-licenses.
 func (r *SrlinuxReconciler) createSecrets(
 	ctx context.Context,
-	s *typesv1alpha1.Srlinux,
+	s *srlinuxv1.Srlinux,
 	log logr.Logger,
 ) error {
 	secret, err := r.addOrUpdateLicenseSecret(ctx, s, log)
@@ -46,7 +46,7 @@ func (r *SrlinuxReconciler) createSecrets(
 
 func (r *SrlinuxReconciler) addOrUpdateLicenseSecret(
 	ctx context.Context,
-	s *typesv1alpha1.Srlinux,
+	s *srlinuxv1.Srlinux,
 	log logr.Logger,
 ) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
@@ -69,7 +69,7 @@ func (r *SrlinuxReconciler) addOrUpdateLicenseSecret(
 // then nothing gets copied and nil returned.
 func (r *SrlinuxReconciler) copyLicenseSecret(
 	ctx context.Context,
-	s *typesv1alpha1.Srlinux,
+	s *srlinuxv1.Srlinux,
 	log logr.Logger,
 ) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
@@ -119,7 +119,7 @@ func (r *SrlinuxReconciler) copyLicenseSecret(
 // present secret data.
 func (r *SrlinuxReconciler) updateLicenseSecret(
 	ctx context.Context,
-	_ *typesv1alpha1.Srlinux,
+	_ *srlinuxv1.Srlinux,
 	log logr.Logger,
 	secret *corev1.Secret,
 ) (*corev1.Secret, error) {

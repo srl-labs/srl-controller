@@ -1,11 +1,14 @@
-# Copyright 2022 Nokia
-# Licensed under the BSD 3-Clause License.
-# SPDX-License-Identifier: BSD-3-Clause
-
 # permissions for end users to edit srlinuxes.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: srlinux-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: srlinux-controller
+    app.kubernetes.io/part-of: srlinux-controller
+    app.kubernetes.io/managed-by: kustomize
   name: srlinux-editor-role
 rules:
 - apiGroups:

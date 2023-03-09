@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,7 +23,7 @@ const srlLicenseSecretName = "srlinux-licenses"
 func createConfigMaps(
 	ctx context.Context,
 	r *SrlinuxReconciler,
-	s *typesv1alpha1.Srlinux,
+	s *srlinuxv1.Srlinux,
 	log logr.Logger,
 ) error {
 	err := createVariantsCfgMap(ctx, r, s.Namespace, log)

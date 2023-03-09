@@ -1,0 +1,12 @@
+apiVersion: kne.srlinux.dev/v1
+kind: Srlinux
+metadata:
+  labels:
+    app.kubernetes.io/name: srlinux
+    app.kubernetes.io/instance: srlinux-sample
+    app.kubernetes.io/part-of: srlinux-controller
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: srlinux-controller
+  name: srlinux-sample
+spec:
+  # TODO(user): Add fields here

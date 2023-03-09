@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 )
 
 // ErrUpdateFailed occurs when update operation fails on srlinux CR.
@@ -29,13 +29,13 @@ var ErrUpdateFailed = errors.New("operation update failed")
 
 // SrlinuxInterface provides access to the Srlinux CRD.
 type SrlinuxInterface interface {
-	List(ctx context.Context, opts metav1.ListOptions) (*typesv1alpha1.SrlinuxList, error)
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*typesv1alpha1.Srlinux, error)
-	Create(ctx context.Context, srlinux *typesv1alpha1.Srlinux) (*typesv1alpha1.Srlinux, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*srlinuxv1.SrlinuxList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*srlinuxv1.Srlinux, error)
+	Create(ctx context.Context, srlinux *srlinuxv1.Srlinux) (*srlinuxv1.Srlinux, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
-	Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*typesv1alpha1.Srlinux, error)
+	Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*srlinuxv1.Srlinux, error)
 }
 
 // Interface is the clientset interface for srlinux.
@@ -51,16 +51,16 @@ type Clientset struct {
 
 func GVR() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
-		Group:    typesv1alpha1.GroupName,
-		Version:  typesv1alpha1.GroupVersion,
+		Group:    srlinuxv1.GroupName,
+		Version:  srlinuxv1.Version,
 		Resource: "srlinuxes",
 	}
 }
 
 func GV() *schema.GroupVersion {
 	return &schema.GroupVersion{
-		Group:   typesv1alpha1.GroupName,
-		Version: typesv1alpha1.GroupVersion,
+		Group:   srlinuxv1.GroupName,
+		Version: srlinuxv1.Version,
 	}
 }
 
@@ -109,8 +109,8 @@ type srlinuxClient struct {
 func (s *srlinuxClient) List(
 	ctx context.Context,
 	opts metav1.ListOptions, // skipcq: CRT-P0003
-) (*typesv1alpha1.SrlinuxList, error) {
-	result := typesv1alpha1.SrlinuxList{}
+) (*srlinuxv1.SrlinuxList, error) {
+	result := srlinuxv1.SrlinuxList{}
 	err := s.restClient.
 		Get().
 		Namespace(s.ns).
@@ -127,8 +127,8 @@ func (s *srlinuxClient) Get(
 	ctx context.Context,
 	name string,
 	opts metav1.GetOptions,
-) (*typesv1alpha1.Srlinux, error) {
-	result := typesv1alpha1.Srlinux{}
+) (*srlinuxv1.Srlinux, error) {
+	result := srlinuxv1.Srlinux{}
 	err := s.restClient.
 		Get().
 		Namespace(s.ns).
@@ -144,9 +144,9 @@ func (s *srlinuxClient) Get(
 // Create creates SRLinux resource.
 func (s *srlinuxClient) Create(
 	ctx context.Context,
-	srlinux *typesv1alpha1.Srlinux,
-) (*typesv1alpha1.Srlinux, error) {
-	result := typesv1alpha1.Srlinux{}
+	srlinux *srlinuxv1.Srlinux,
+) (*srlinuxv1.Srlinux, error) {
+	result := srlinuxv1.Srlinux{}
 	err := s.restClient.
 		Post().
 		Namespace(s.ns).
@@ -190,8 +190,8 @@ func (s *srlinuxClient) Update(
 	ctx context.Context,
 	obj *unstructured.Unstructured,
 	opts metav1.UpdateOptions,
-) (*typesv1alpha1.Srlinux, error) {
-	result := typesv1alpha1.Srlinux{}
+) (*srlinuxv1.Srlinux, error) {
+	result := srlinuxv1.Srlinux{}
 
 	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, opts)
 	if err != nil {
@@ -213,7 +213,7 @@ func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts meta
 }
 
 func init() {
-	if err := typesv1alpha1.AddToScheme(scheme.Scheme); err != nil {
+	if err := srlinuxv1.AddToScheme(scheme.Scheme); err != nil {
 		panic(err)
 	}
 }
