@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 )
@@ -31,7 +32,7 @@ var ErrUpdateFailed = errors.New("operation update failed")
 type SrlinuxInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*srlinuxv1.SrlinuxList, error)
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*srlinuxv1.Srlinux, error)
-	Create(ctx context.Context, srlinux *srlinuxv1.Srlinux) (*srlinuxv1.Srlinux, error)
+	Create(ctx context.Context, srlinux *srlinuxv1.Srlinux, opts metav1.CreateOptions) (*srlinuxv1.Srlinux, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Unstructured(ctx context.Context, name string, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
@@ -46,22 +47,25 @@ type Interface interface {
 // Clientset is a client for the srlinux crds.
 type Clientset struct {
 	dInterface dynamic.NamespaceableResourceInterface
-	restClient rest.Interface
+}
+
+var gvr = schema.GroupVersionResource{
+	Group:    srlinuxv1.GroupName,
+	Version:  srlinuxv1.Version,
+	Resource: "srlinuxes",
 }
 
 func GVR() schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    srlinuxv1.GroupName,
-		Version:  srlinuxv1.Version,
-		Resource: "srlinuxes",
-	}
+	return gvr
+}
+
+var groupVersion = &schema.GroupVersion{
+	Group:   srlinuxv1.GroupName,
+	Version: srlinuxv1.Version,
 }
 
 func GV() *schema.GroupVersion {
-	return &schema.GroupVersion{
-		Group:   srlinuxv1.GroupName,
-		Version: srlinuxv1.Version,
-	}
+	return groupVersion
 }
 
 // NewForConfig returns a new Clientset based on c.
@@ -77,132 +81,93 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 		return nil, err
 	}
 
-	dInterface := dClient.Resource(GVR())
+	dInterface := dClient.Resource(gvr)
 
-	rClient, err := rest.RESTClientFor(&config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Clientset{
-		dInterface: dInterface,
-		restClient: rClient,
-	}, nil
+	return &Clientset{dInterface: dInterface}, nil
 }
 
 // Srlinux initializes srlinuxClient struct which implements SrlinuxInterface.
 func (c *Clientset) Srlinux(namespace string) SrlinuxInterface {
 	return &srlinuxClient{
 		dInterface: c.dInterface,
-		restClient: c.restClient,
 		ns:         namespace,
 	}
 }
 
 type srlinuxClient struct {
 	dInterface dynamic.NamespaceableResourceInterface
-	restClient rest.Interface
 	ns         string
 }
 
 // List gets a list of SRLinux resources.
-func (s *srlinuxClient) List(
-	ctx context.Context,
-	opts metav1.ListOptions, // skipcq: CRT-P0003
-) (*srlinuxv1.SrlinuxList, error) {
-	result := srlinuxv1.SrlinuxList{}
-	err := s.restClient.
-		Get().
-		Namespace(s.ns).
-		Resource(GVR().Resource).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do(ctx).
-		Into(&result)
-
-	return &result, err
-}
-
-// Get gets SRLinux resource.
-func (s *srlinuxClient) Get(
-	ctx context.Context,
-	name string,
-	opts metav1.GetOptions,
-) (*srlinuxv1.Srlinux, error) {
-	result := srlinuxv1.Srlinux{}
-	err := s.restClient.
-		Get().
-		Namespace(s.ns).
-		Resource(GVR().Resource).
-		Name(name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do(ctx).
-		Into(&result)
-
-	return &result, err
-}
-
-// Create creates SRLinux resource.
-func (s *srlinuxClient) Create(
-	ctx context.Context,
-	srlinux *srlinuxv1.Srlinux,
-) (*srlinuxv1.Srlinux, error) {
-	result := srlinuxv1.Srlinux{}
-	err := s.restClient.
-		Post().
-		Namespace(s.ns).
-		Resource(GVR().Resource).
-		Body(srlinux).
-		Do(ctx).
-		Into(&result)
-
-	return &result, err
-}
-
-func (s *srlinuxClient) Watch(
-	ctx context.Context,
-	opts metav1.ListOptions, // skipcq: CRT-P0003
-) (watch.Interface, error) {
-	opts.Watch = true
-
-	return s.restClient.
-		Get().
-		Namespace(s.ns).
-		Resource(GVR().Resource).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch(ctx)
-}
-
-func (s *srlinuxClient) Delete(ctx context.Context,
-	name string,
-	opts metav1.DeleteOptions, // skipcq: CRT-P0003
-) error {
-	return s.restClient.
-		Delete().
-		Namespace(s.ns).
-		Resource(GVR().Resource).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Name(name).
-		Do(ctx).
-		Error()
-}
-
-func (s *srlinuxClient) Update(
-	ctx context.Context,
-	obj *unstructured.Unstructured,
-	opts metav1.UpdateOptions,
-) (*srlinuxv1.Srlinux, error) {
-	result := srlinuxv1.Srlinux{}
-
-	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, opts)
+func (s *srlinuxClient) List(ctx context.Context, opts metav1.ListOptions) (*srlinuxv1.SrlinuxList, error) {
+	u, err := s.dInterface.Namespace(s.ns).List(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to type assert return to srlinux: %w", ErrUpdateFailed)
+	result := srlinuxv1.SrlinuxList{}
+	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &result); err != nil {
+		return nil, fmt.Errorf("failed to type assert return to SrlinuxList: %w", err)
 	}
+	return &result, nil
+}
 
+// Get gets SRLinux resource.
+func (s *srlinuxClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*srlinuxv1.Srlinux, error) {
+	u, err := s.dInterface.Namespace(s.ns).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	result := srlinuxv1.Srlinux{}
+	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &result); err != nil {
+		return nil, fmt.Errorf("failed to type assert return to Srlinux: %w", err)
+	}
+	return &result, nil
+}
+
+// Create creates SRLinux resource.
+func (s *srlinuxClient) Create(ctx context.Context, srlinux *srlinuxv1.Srlinux, opts metav1.CreateOptions) (*srlinuxv1.Srlinux, error) {
+	gvk, err := apiutil.GVKForObject(srlinux, srlinuxv1.Scheme)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get gvk for Srlinux: %w", err)
+	}
+	srlinux.TypeMeta = metav1.TypeMeta{
+		Kind:       gvk.Kind,
+		APIVersion: gvk.GroupVersion().String(),
+	}
+	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(srlinux)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert Srlinux to unstructured: %w", err)
+	}
+	u, err := s.dInterface.Namespace(s.ns).Create(ctx, &unstructured.Unstructured{Object: obj}, opts)
+	if err != nil {
+		return nil, err
+	}
+	result := srlinuxv1.Srlinux{}
+	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), &result); err != nil {
+		return nil, fmt.Errorf("failed to type assert return to Srlinux: %w", err)
+	}
+	return &result, nil
+}
+
+func (s *srlinuxClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return s.dInterface.Namespace(s.ns).Watch(ctx, opts)
+}
+
+func (s *srlinuxClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return s.dInterface.Namespace(s.ns).Delete(ctx, name, opts)
+}
+
+func (s *srlinuxClient) Update(ctx context.Context, obj *unstructured.Unstructured, opts metav1.UpdateOptions) (*srlinuxv1.Srlinux, error) {
+	obj, err := s.dInterface.Namespace(s.ns).UpdateStatus(ctx, obj, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	result := srlinuxv1.Srlinux{}
+	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &result); err != nil {
+		return nil, fmt.Errorf("failed to type assert return to Srlinux: %w", err)
+	}
 	return &result, nil
 }
 
@@ -210,10 +175,4 @@ func (s *srlinuxClient) Unstructured(ctx context.Context, name string, opts meta
 	subresources ...string,
 ) (*unstructured.Unstructured, error) {
 	return s.dInterface.Namespace(s.ns).Get(ctx, name, opts, subresources...)
-}
-
-func init() {
-	if err := srlinuxv1.AddToScheme(scheme.Scheme); err != nil {
-		panic(err)
-	}
 }

@@ -5,12 +5,8 @@
 package v1alpha1
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -19,21 +15,38 @@ import (
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/rest"
 	ktest "k8s.io/client-go/testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	restfake "k8s.io/client-go/rest/fake"
 )
 
 var (
+	objNew = &srlinuxv1.Srlinux{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Srlinux",
+			APIVersion: "kne.srlinux.dev/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "newObj",
+			Namespace:  "test",
+			Generation: 1,
+		},
+		Status: srlinuxv1.SrlinuxStatus{},
+		Spec: srlinuxv1.SrlinuxSpec{
+			Config:        &srlinuxv1.NodeConfig{},
+			NumInterfaces: 2,
+			Model:         "fake",
+			Version:       "1",
+		},
+	}
+
 	obj1 = &srlinuxv1.Srlinux{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Srlinux",
-			APIVersion: "kne.srlinux.dev/v1alpha1",
+			APIVersion: "kne.srlinux.dev/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "obj1",
@@ -52,7 +65,7 @@ var (
 	obj2 = &srlinuxv1.Srlinux{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Srlinux",
-			APIVersion: "kne.srlinux.dev/v1alpha1",
+			APIVersion: "kne.srlinux.dev/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "obj2",
@@ -74,263 +87,197 @@ var (
 	ignoreTypeMetaOpt = cmpopts.IgnoreFields(srlinuxv1.Srlinux{}, "TypeMeta")
 )
 
-// setUp creates a Srlinux clientset and patches its rest and dynamic clients.
-func setUp(t *testing.T) (*Clientset, *restfake.RESTClient) {
-	t.Helper()
+type fakeWatch struct {
+	e    []watch.Event
+	ch   chan watch.Event
+	done chan struct{}
+}
 
-	gv := GV()
-
-	fakeClient := &restfake.RESTClient{
-		NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
-		GroupVersion:         *gv,
-		VersionedAPIPath:     GVR().Version,
-		Err:                  nil,
-		Req:                  &http.Request{},
-		Client:               &http.Client{},
-		Resp:                 &http.Response{},
+func newFakeWatch(e []watch.Event) *fakeWatch {
+	f := &fakeWatch{
+		e:    e,
+		ch:   make(chan watch.Event, 1),
+		done: make(chan struct{}),
 	}
+	go func() {
+		for len(f.e) != 0 {
+			e := f.e[0]
+			f.e = f.e[1:]
+			select {
+			case f.ch <- e:
+			case <-f.done:
+				return
+			}
+		}
+	}()
+	return f
+}
 
+func (f *fakeWatch) Stop() {
+	close(f.done)
+}
+
+func (f *fakeWatch) ResultChan() <-chan watch.Event {
+	return f.ch
+}
+
+// setUp creates a Srlinux clientset and patches its dynamic clients.
+func setUp(t *testing.T) *Clientset {
+	t.Helper()
+	objs := []runtime.Object{obj1, obj2}
 	cs, err := NewForConfig(&rest.Config{})
 	if err != nil {
-		t.Fatalf("NewForConfig() failed: %v", err)
+		t.Fatalf("failed to create client set")
 	}
-
-	// objects will be added to the object tracker when the fake dynamic interface is created,
-	// this allows to unit test methods that require processing of unstructured data.
-	objs := []runtime.Object{obj1, obj2}
-	cs.restClient = fakeClient
-
-	f := dynamicfake.NewSimpleDynamicClient(scheme.Scheme, objs...)
-	f.PrependReactor("get", "*", func(action ktest.Action) (bool, runtime.Object, error) {
-		gAction := action.(ktest.GetAction)
-		switch gAction.GetName() {
-		case "obj1":
-			return true, obj1, nil
-		case "obj2":
-			return true, obj2, nil
-		}
-
-		return false, nil, nil
-	})
-
-	f.PrependReactor("update", "*", func(action ktest.Action) (bool, runtime.Object, error) {
-		uAction, ok := action.(ktest.UpdateAction)
+	f := dynamicfake.NewSimpleDynamicClient(srlinuxv1.Scheme, objs...)
+	f.PrependWatchReactor("*", func(action ktest.Action) (bool, watch.Interface, error) {
+		wAction, ok := action.(ktest.WatchAction)
 		if !ok {
 			return false, nil, nil
 		}
-
-		uObj := uAction.GetObject().(*unstructured.Unstructured)
-		sObj := &srlinuxv1.Srlinux{}
-
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(uObj.Object, sObj); err != nil {
-			return true, nil, fmt.Errorf("failed to convert object: %v", err)
+		if wAction.GetWatchRestrictions().ResourceVersion == "doesnotexist" {
+			return true, nil, fmt.Errorf("cannot watch unknown resource version")
 		}
-
-		if sObj.ObjectMeta.Name == "doesnotexist" {
-			return true, nil, fmt.Errorf("doesnotexist")
-		}
-
-		return true, uAction.GetObject(), nil
+		f := newFakeWatch([]watch.Event{
+			{
+				Type:   watch.Added,
+				Object: obj1,
+			},
+		})
+		return true, f, nil
 	})
-
-	cs.dInterface = f.Resource(GVR())
-
-	return cs, fakeClient
+	cs.dInterface = f.Resource(gvr)
+	return cs
 }
 
 func TestCreate(t *testing.T) {
-	cs, fakeClient := setUp(t)
-
+	cs := setUp(t)
+	objWithoutTypeMetaOut := objNew.DeepCopy()
+	objWithoutTypeMetaOut.ObjectMeta.Name = "newObjWithoutTypeMeta"
+	objWithoutTypeMetaIn := objWithoutTypeMetaOut.DeepCopy()
+	objWithoutTypeMetaIn.TypeMeta.Reset()
 	tests := []struct {
 		desc    string
-		resp    *http.Response
+		in      *srlinuxv1.Srlinux
 		want    *srlinuxv1.Srlinux
 		wantErr string
 	}{{
-		desc:    "Error",
-		wantErr: "TEST ERROR",
+		desc:    "already exists",
+		in:      obj1,
+		wantErr: "already exists",
 	}, {
-		desc: "Valid Node",
-		resp: &http.Response{
-			StatusCode: http.StatusOK,
-		},
-		want: obj1,
+		desc: "success",
+		in:   objNew,
+		want: objNew,
+	}, {
+		desc: "success without typemeta",
+		in:   objWithoutTypeMetaIn,
+		want: objWithoutTypeMetaOut,
 	}}
-
 	for _, tt := range tests {
-		fakeClient.Err = nil // set Err to nil on each case start
-		// if we expect an error to be returned from the rest server
-		// we set the fake rest client error to it
-		// thus it will be returned for every rest call to that server.
-		if tt.wantErr != "" {
-			fakeClient.Err = fmt.Errorf(tt.wantErr)
-		}
-
-		fakeClient.Resp = tt.resp
-
-		// rest unit tests keep no state on the server side
-		// instead, whatever we want to be returned we populate as a resp.Body
-		if tt.want != nil {
-			b, _ := json.Marshal(tt.want)
-			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
-		}
-
 		t.Run(tt.desc, func(t *testing.T) {
-			tc := cs.Srlinux("foo")
-			got, err := tc.Create(context.Background(), tt.want)
-
+			tc := cs.Srlinux("test")
+			got, err := tc.Create(context.Background(), tt.in, metav1.CreateOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
-
 			if tt.wantErr != "" {
 				return
 			}
-
-			if s := cmp.Diff(got, tt.want, ignoreTypeMetaOpt); s != "" {
-				t.Fatalf("Create failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
+			if s := cmp.Diff(tt.want, got); s != "" {
+				t.Fatalf("Create(%+v) failed: %s", tt.want, s)
 			}
 		})
 	}
 }
 
 func TestList(t *testing.T) {
-	cs, fakeClient := setUp(t)
+	cs := setUp(t)
 	tests := []struct {
 		desc    string
-		resp    *http.Response
 		want    *srlinuxv1.SrlinuxList
 		wantErr string
 	}{{
-		desc:    "Error",
-		wantErr: "TEST ERROR",
-	}, {
-		desc: "Valid Node",
-		resp: &http.Response{
-			StatusCode: http.StatusOK,
-		},
+		desc: "success",
 		want: &srlinuxv1.SrlinuxList{
 			Items: []srlinuxv1.Srlinux{*obj1, *obj2},
 		},
 	}}
-
 	for _, tt := range tests {
-		fakeClient.Err = nil
-
-		if tt.wantErr != "" {
-			fakeClient.Err = fmt.Errorf(tt.wantErr)
-		}
-
-		fakeClient.Resp = tt.resp
-
-		if tt.want != nil {
-			b, _ := json.Marshal(tt.want)
-			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
-		}
-
 		t.Run(tt.desc, func(t *testing.T) {
-			tc := cs.Srlinux("foo")
-
+			tc := cs.Srlinux("test")
 			got, err := tc.List(context.Background(), metav1.ListOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
-
 			if tt.wantErr != "" {
 				return
 			}
-
-			if s := cmp.Diff(got, tt.want, ignoreTypeMetaOpt); s != "" {
-				t.Fatalf("List failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
+			if s := cmp.Diff(tt.want, got, cmpopts.IgnoreFields(srlinuxv1.SrlinuxList{}, "TypeMeta")); s != "" {
+				t.Fatalf("List() failed: %s", s)
 			}
 		})
 	}
 }
 
 func TestGet(t *testing.T) {
-	cs, fakeClient := setUp(t)
+	cs := setUp(t)
 	tests := []struct {
 		desc    string
-		resp    *http.Response
+		in      string
 		want    *srlinuxv1.Srlinux
 		wantErr string
 	}{{
-		desc:    "Error",
-		wantErr: "TEST ERROR",
+		desc:    "failure",
+		in:      "doesnotexist",
+		wantErr: `"doesnotexist" not found`,
 	}, {
-		desc: "Valid Node",
-		resp: &http.Response{
-			StatusCode: http.StatusOK,
-		},
+		desc: "success 1",
+		in:   "obj1",
 		want: obj1,
+	}, {
+		desc: "success 2",
+		in:   "obj2",
+		want: obj2,
 	}}
-
 	for _, tt := range tests {
-		fakeClient.Err = nil
-
-		if tt.wantErr != "" {
-			fakeClient.Err = fmt.Errorf(tt.wantErr)
-		}
-
-		fakeClient.Resp = tt.resp
-
-		if tt.want != nil {
-			b, _ := json.Marshal(tt.want)
-			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
-		}
-
 		t.Run(tt.desc, func(t *testing.T) {
-			tc := cs.Srlinux("foo")
-
-			got, err := tc.Get(context.Background(), "test", metav1.GetOptions{})
+			tc := cs.Srlinux("test")
+			got, err := tc.Get(context.Background(), tt.in, metav1.GetOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
-
 			if tt.wantErr != "" {
 				return
 			}
-
-			if s := cmp.Diff(got, tt.want, ignoreTypeMetaOpt); s != "" {
-				t.Fatalf("Get failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
+			if s := cmp.Diff(tt.want, got); s != "" {
+				t.Fatalf("Get(%q) failed: %s", tt.in, s)
 			}
 		})
 	}
 }
 
 func TestDelete(t *testing.T) {
-	cs, fakeClient := setUp(t)
+	cs := setUp(t)
 	tests := []struct {
 		desc    string
-		resp    *http.Response
+		in      string
 		wantErr string
 	}{{
-		desc:    "Error",
-		wantErr: "TEST ERROR",
+		desc:    "failure",
+		in:      "doesnotexist",
+		wantErr: `"doesnotexist" not found`,
 	}, {
-		desc: "Valid Node",
-		resp: &http.Response{
-			StatusCode: http.StatusOK,
-		},
+		desc: "success",
+		in:   "obj1",
 	}}
-
 	for _, tt := range tests {
-		fakeClient.Err = nil
-
-		if tt.wantErr != "" {
-			fakeClient.Err = fmt.Errorf(tt.wantErr)
-		}
-
-		fakeClient.Resp = tt.resp
-
 		t.Run(tt.desc, func(t *testing.T) {
-			tc := cs.Srlinux("foo")
-
-			err := tc.Delete(context.Background(), "obj1", metav1.DeleteOptions{})
+			tc := cs.Srlinux("test")
+			err := tc.Delete(context.Background(), tt.in, metav1.DeleteOptions{})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
-
 			if tt.wantErr != "" {
 				return
 			}
@@ -339,97 +286,45 @@ func TestDelete(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
-	cs, fakeClient := setUp(t)
+	cs := setUp(t)
 	tests := []struct {
 		desc    string
-		resp    *http.Response
-		want    *watch.Event
+		ver     string
+		want    watch.Event
 		wantErr string
 	}{{
-		desc:    "Error",
-		wantErr: "TEST ERROR",
-	}}
-
-	for _, tt := range tests {
-		fakeClient.Err = nil
-
-		if tt.wantErr != "" {
-			fakeClient.Err = fmt.Errorf(tt.wantErr)
-		}
-
-		fakeClient.Resp = tt.resp
-
-		if tt.want != nil {
-			b, _ := json.Marshal(tt.want)
-			tt.resp.Body = io.NopCloser(bytes.NewReader(b))
-		}
-
-		t.Run(tt.desc, func(t *testing.T) {
-			tc := cs.Srlinux("foo")
-			w, err := tc.Watch(context.Background(), metav1.ListOptions{})
-			if s := errdiff.Substring(err, tt.wantErr); s != "" {
-				t.Fatalf("unexpected error: %s", s)
-			}
-
-			if tt.wantErr != "" {
-				return
-			}
-
-			got := <-w.ResultChan()
-			if s := cmp.Diff(got, tt.want); s != "" {
-				t.Fatalf("Watch failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, tt.want, s)
-			}
-		})
-	}
-}
-
-func TestUnstructured(t *testing.T) {
-	cs, _ := setUp(t)
-	tests := []struct {
-		desc    string
-		in      string
-		want    *srlinuxv1.Srlinux
-		wantErr string
-	}{{
-		desc:    "Error",
-		in:      "missingObj",
-		wantErr: `"missingObj" not found`,
+		desc:    "failure",
+		ver:     "doesnotexist",
+		wantErr: "cannot watch unknown resource version",
 	}, {
-		desc: "Valid Node 1",
-		in:   obj1.GetObjectMeta().GetName(),
-		want: obj1,
-	}, {
-		desc: "Valid Node 2",
-		in:   obj2.GetObjectMeta().GetName(),
-		want: obj2,
+		desc: "success",
+		want: watch.Event{
+			Type:   watch.Added,
+			Object: obj1,
+		},
 	}}
-
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			tc := cs.Srlinux("test")
-			got, err := tc.Unstructured(context.Background(), tt.in, metav1.GetOptions{})
+			w, err := tc.Watch(context.Background(), metav1.ListOptions{
+				ResourceVersion: tt.ver,
+			})
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
-
 			if tt.wantErr != "" {
 				return
 			}
-
-			uObj1 := &srlinuxv1.Srlinux{}
-			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(got.Object, uObj1); err != nil {
-				t.Fatalf("failed to turn response into a topology: %v", err)
-			}
-
-			if s := cmp.Diff(uObj1, tt.want); s != "" {
-				t.Fatalf("Unstructured (%q) failed.\nGot: %+v\nWant: %+v\nDiff\n%s", tt.in, uObj1, tt.want, s)
+			e := <-w.ResultChan()
+			if s := cmp.Diff(tt.want, e); s != "" {
+				t.Fatalf("Watch() failed: %s", s)
 			}
 		})
 	}
 }
 
 func TestUpdate(t *testing.T) {
-	cs, _ := setUp(t)
+	cs := setUp(t)
 	tests := []struct {
 		desc    string
 		want    *srlinuxv1.Srlinux
@@ -439,45 +334,79 @@ func TestUpdate(t *testing.T) {
 		want: &srlinuxv1.Srlinux{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Srlinux",
-				APIVersion: "kne.srlinux.dev/v1alpha1",
+				APIVersion: "kne.srlinux.dev",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:       "doesnotexist",
-				Namespace:  "test",
-				Generation: 1,
+				Name:      "doesnotexist",
+				Namespace: "test",
 			},
 		},
 		wantErr: "doesnotexist",
 	}, {
-		desc: "Valid Node",
+		desc: "Valid Srlinux",
 		want: obj1,
 	}}
-
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			sc := cs.Srlinux("test")
+			tc := cs.Srlinux("test")
 			updateObj := tt.want.DeepCopy()
-			updateObj.Spec.Version = "updated version"
-
+			updateObj.Spec.NumInterfaces = 1000
 			update, err := runtime.DefaultUnstructuredConverter.ToUnstructured(updateObj)
 			if err != nil {
 				t.Fatalf("failed to generate update: %v", err)
 			}
-
-			got, err := sc.Update(context.Background(), &unstructured.Unstructured{
+			got, err := tc.Update(context.Background(), &unstructured.Unstructured{
 				Object: update,
 			}, metav1.UpdateOptions{})
-
 			if s := errdiff.Substring(err, tt.wantErr); s != "" {
 				t.Fatalf("unexpected error: %s", s)
 			}
-
 			if tt.wantErr != "" {
 				return
 			}
+			if s := cmp.Diff(updateObj, got); s != "" {
+				t.Fatalf("Update() failed: %s", s)
+			}
+		})
+	}
+}
 
-			if s := cmp.Diff(got, updateObj); s != "" {
-				t.Fatalf("Update failed.\nGot: %+v\nWant: %+v\nDiff\n%s", got, updateObj, s)
+func TestUnstructured(t *testing.T) {
+	cs := setUp(t)
+	tests := []struct {
+		desc    string
+		in      string
+		want    *srlinuxv1.Srlinux
+		wantErr string
+	}{{
+		desc:    "failure",
+		in:      "missingObj",
+		wantErr: `"missingObj" not found`,
+	}, {
+		desc: "success 1",
+		in:   "obj1",
+		want: obj1,
+	}, {
+		desc: "success 2",
+		in:   "obj2",
+		want: obj2,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			tc := cs.Srlinux("test")
+			got, err := tc.Unstructured(context.Background(), tt.in, metav1.GetOptions{})
+			if s := errdiff.Substring(err, tt.wantErr); s != "" {
+				t.Fatalf("unexpected error: %s", s)
+			}
+			if tt.wantErr != "" {
+				return
+			}
+			uObj1 := &srlinuxv1.Srlinux{}
+			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(got.Object, uObj1); err != nil {
+				t.Fatalf("failed to turn reponse into a Srlinux: %v", err)
+			}
+			if s := cmp.Diff(uObj1, tt.want); s != "" {
+				t.Fatalf("Unstructured(%q) failed: %s", tt.in, s)
 			}
 		})
 	}
