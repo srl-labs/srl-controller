@@ -50,7 +50,7 @@ import (
 const (
 	controllerNamespace = "srlinux-controller"
 
-	initContainerName        = "networkop/init-wait:latest"
+	initContainerName        = "ghcr.io/srl-labs/init-wait:latest"
 	variantsVolName          = "variants"
 	variantsVolMntPath       = "/tmp/topo"
 	variantsTemplateTempName = "topo-template.yml"
