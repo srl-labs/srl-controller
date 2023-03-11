@@ -117,6 +117,7 @@ var _ = Describe("Srlinux controller", func() {
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
 				found := &srlinuxv1.Srlinux{}
+
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 

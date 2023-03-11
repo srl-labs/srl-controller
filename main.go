@@ -31,11 +31,12 @@ var (
 	setupLog = ctrl.Log.WithName("setup") //nolint:gochecknoglobals
 )
 
+//nolint:wsl
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(srlinuxv1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme //nolint:wsl
+	//+kubebuilder:scaffold:scheme
 }
 
 func main() { //nolint:funlen
