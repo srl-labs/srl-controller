@@ -45,7 +45,6 @@ import (
 )
 
 var _ = Describe("Srlinux controller", func() {
-
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
 		SrlinuxName      = "test-srlinux"
@@ -57,7 +56,6 @@ var _ = Describe("Srlinux controller", func() {
 	)
 
 	Context("Srlinux controller test", func() {
-
 		ctx := context.Background()
 
 		namespace := &corev1.Namespace{
@@ -77,7 +75,6 @@ var _ = Describe("Srlinux controller", func() {
 		AfterEach(func() {
 			By("Deleting the Namespace to perform the tests")
 			_ = k8sClient.Delete(ctx, namespace)
-
 		})
 
 		It("should succesfully reconcile a custom resource for Srlinux", func() {
