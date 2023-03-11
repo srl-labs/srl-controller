@@ -76,9 +76,8 @@ const (
 	srlinuxPodAffinityWeight = 100
 )
 
-// VariantsFS is variable without fs assignment, since it is used in main.go
-// to assign a value for an fs that is in the outer scope of srlinux_controller.go.
-var VariantsFS embed.FS //nolint:gochecknoglobals
+//go:embed manifests/variants/*
+var variantsFS embed.FS
 
 // SrlinuxReconciler reconciles a Srlinux object.
 type SrlinuxReconciler struct {

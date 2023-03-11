@@ -206,7 +206,8 @@ func TestGetConstraints(t *testing.T) {
 		{
 			desc: "constraints are present",
 			spec: &SrlinuxSpec{
-				Constraints: map[string]string{"cpu": "2", "memory": "4Gi"}},
+				Constraints: map[string]string{"cpu": "2", "memory": "4Gi"},
+			},
 
 			want: map[string]string{"cpu": "2", "memory": "4Gi"},
 		},

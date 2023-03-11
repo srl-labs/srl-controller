@@ -5,7 +5,6 @@
 package main
 
 import (
-	"embed"
 	"flag"
 	"os"
 
@@ -30,9 +29,6 @@ const ctrlManagerPort = 9443
 var (
 	scheme   = runtime.NewScheme()        //nolint:gochecknoglobals
 	setupLog = ctrl.Log.WithName("setup") //nolint:gochecknoglobals
-
-	//go:embed manifests/variants/*
-	variantsFS embed.FS
 )
 
 func init() {
@@ -40,9 +36,6 @@ func init() {
 
 	utilruntime.Must(srlinuxv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
-
-	// make manifests available to controllers package
-	controllers.VariantsFS = variantsFS
 }
 
 func main() { //nolint:funlen
