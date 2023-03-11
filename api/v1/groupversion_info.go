@@ -34,8 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
@@ -55,15 +53,4 @@ var (
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
-
-	Scheme = runtime.NewScheme()
 )
-
-func init() {
-	Scheme.AddKnownTypes(GroupVersion,
-		&Srlinux{},
-		&SrlinuxList{},
-	)
-	metav1.AddToGroupVersion(Scheme, GroupVersion)
-	metav1.AddMetaToScheme(Scheme)
-}
