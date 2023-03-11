@@ -49,10 +49,6 @@ var _ = Describe("Srlinux controller", func() {
 	const (
 		SrlinuxName      = "test-srlinux"
 		SrlinuxNamespace = "test"
-
-		timeout  = time.Second * 10
-		duration = time.Second * 10
-		interval = time.Millisecond * 250
 	)
 
 	Context("Srlinux controller test", func() {
@@ -77,7 +73,7 @@ var _ = Describe("Srlinux controller", func() {
 			_ = k8sClient.Delete(ctx, namespace)
 		})
 
-		It("should succesfully reconcile a custom resource for Srlinux", func() {
+		It("should successfully reconcile a custom resource for Srlinux", func() {
 			By("Creating the custom resource for the Kind Srlinux")
 
 			srlinux := &srlinuxv1.Srlinux{}
