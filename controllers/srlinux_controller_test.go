@@ -32,6 +32,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -41,6 +42,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -64,8 +67,7 @@ var _ = Describe("Srlinux controller", func() {
 
 		BeforeEach(func() {
 			By("Creating the Namespace to perform the tests")
-			err := k8sClient.Create(ctx, namespace)
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, namespace)).Should(Succeed())
 		})
 
 		AfterEach(func() {
@@ -74,52 +76,38 @@ var _ = Describe("Srlinux controller", func() {
 		})
 
 		It("should successfully reconcile a custom resource for Srlinux", func() {
-			By("Creating the custom resource for the Kind Srlinux")
+			By("Checking that Srlinux resource doesn't exist in the cluster")
 
 			srlinux := &srlinuxv1.Srlinux{}
 
 			err := k8sClient.Get(ctx, typeNamespaceName, srlinux)
 
-			if err != nil && errors.IsNotFound(err) {
+			Expect(errors.IsNotFound(err)).To(BeTrue())
 
-				srlinux := &srlinuxv1.Srlinux{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      SrlinuxName,
-						Namespace: SrlinuxNamespace,
+			By("Creating the custom resource for the Kind Srlinux")
+			srlinux = &srlinuxv1.Srlinux{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SrlinuxName,
+					Namespace: SrlinuxNamespace,
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Srlinux",
+					APIVersion: "kne.srlinux.dev/v1",
+				},
+				Spec: srlinuxv1.SrlinuxSpec{
+					Config: &srlinuxv1.NodeConfig{
+						Image: "srlinux:latest",
 					},
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Srlinux",
-						APIVersion: "kne.srlinux.dev/v1",
-					},
-					Spec: srlinuxv1.SrlinuxSpec{
-						Config: &srlinuxv1.NodeConfig{
-							Image: "srlinux:latest",
-						},
-					},
-				}
-				// Expect(k8sClient.Create(ctx, srlinux)).Should(Succeed())
-				err = k8sClient.Create(ctx, srlinux)
-				Expect(err).To(Not(HaveOccurred()))
+				},
 			}
-
-			// srlinuxLookupKey := types.NamespacedName{Name: SrlinuxName, Namespace: SrlinuxNamespace}
-			// createdSrlinux := &srlinuxv1.Srlinux{}
-
-			// // We'll need to retry getting this newly created resource, given that creation may not immediately happen.
-			// Eventually(func() bool {
-			// 	err := k8sClient.Get(ctx, srlinuxLookupKey, createdSrlinux)
-			// 	return err == nil
-			// }, timeout, interval).Should(BeTrue())
-
-			// // Let's make sure our Schedule string value was properly converted/handled.
-			// Expect(createdSrlinux.Spec.Config.Image).Should(Equal("srlinux:latest"))
+			Expect(k8sClient.Create(ctx, srlinux)).Should(Succeed())
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
 				found := &srlinuxv1.Srlinux{}
 
 				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}, time.Minute, time.Second).Should(Succeed())
+			}, 10*time.Second, time.Second).Should(Succeed())
 
 			By("Reconciling the custom resource created")
 			srlinuxReconciler := &SrlinuxReconciler{
@@ -127,10 +115,45 @@ var _ = Describe("Srlinux controller", func() {
 				Scheme: k8sClient.Scheme(),
 			}
 
-			_, err = srlinuxReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
+			Eventually(func() bool {
+				res, err := srlinuxReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: typeNamespaceName,
+				})
+				return res.IsZero() && err == nil
+			}, 10*time.Second, time.Second).Should(BeTrue())
+
+			By("Checking if Srlinux Pod was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &corev1.Pod{}
+
+				return k8sClient.Get(ctx, typeNamespaceName, found)
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Ensuring the Srlinux CR Status has been updated")
+			Eventually(func() error {
+				Expect(k8sClient.Get(ctx, typeNamespaceName, srlinux)).Should(Succeed())
+
+				if srlinux.Status.Image != "srlinux:latest" {
+					return fmt.Errorf("got Srlinux.Status.Image: %s, want: %s", srlinux.Status.Image, "srlinux:latest")
+				}
+
+				return nil
+			}, 10*time.Second, time.Second).Should(Succeed())
 		})
+	})
+})
+
+var _ = Describe("Srlinux setup with manager", func() {
+	It("should successfully setup the controller with the manager", func() {
+		k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+			Scheme: scheme.Scheme,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = (&SrlinuxReconciler{
+			Client: k8sManager.GetClient(),
+			Scheme: k8sManager.GetScheme(),
+		}).SetupWithManager(k8sManager)
+		Expect(err).ToNot(HaveOccurred())
 	})
 })

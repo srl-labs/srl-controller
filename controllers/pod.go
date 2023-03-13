@@ -54,6 +54,7 @@ func (r *SrlinuxReconciler) podForSrlinux(
 	// handle startup config volume mounts if the startup config was defined
 	handleStartupConfig(s, pod, log)
 
+	// TODO: handle the error
 	_ = ctrl.SetControllerReference(s, pod, r.Scheme)
 
 	return pod

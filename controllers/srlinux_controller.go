@@ -165,6 +165,7 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
 	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
+	// if pod was not found, create a new one
 	if err != nil && errors.IsNotFound(err) {
 		err = createConfigMaps(ctx, r, srlinux, log)
 		if err != nil {
