@@ -42,9 +42,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ = Describe("Srlinux controller", func() {
@@ -109,19 +106,7 @@ var _ = Describe("Srlinux controller", func() {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, 10*time.Second, time.Second).Should(Succeed())
 
-			By("Reconciling the custom resource created")
-			srlinuxReconciler := &SrlinuxReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			Eventually(func() bool {
-				res, err := srlinuxReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: typeNamespaceName,
-				})
-
-				return res.IsZero() && err == nil
-			}, 10*time.Second, time.Second).Should(BeTrue())
+			// Reconcile is triggered by the creation of the custom resource
 
 			By("Checking if Srlinux Pod was successfully created in the reconciliation")
 			Eventually(func() error {
@@ -151,39 +136,10 @@ var _ = Describe("Srlinux controller", func() {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, 10*time.Second, time.Second).ShouldNot(Succeed())
 
-			By("Reconciling the custom resource deleted")
-			Eventually(func() bool {
-				res, err := srlinuxReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: typeNamespaceName,
-				})
+			// because there are no controllers monitoring built-in resources in the envtest cluster,
+			// objects do not get deleted, even if an OwnerReference is set up
 
-				return res.IsZero() && err == nil
-			}, 10*time.Second, time.Second).Should(BeTrue())
-
-			By("Checking if the custom resource is not present")
-			Eventually(func() error {
-				found := &srlinuxv1.Srlinux{}
-
-				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}, 10*time.Second, time.Second).ShouldNot(Succeed())
-
-			// we can't (likely?) check if the Pod was deleted because controller-manager is not running
-			// and won't clean up the pod based on the owner reference.
+			// Reconcile is triggered by the deletion of the custom resource
 		})
-	})
-})
-
-var _ = Describe("Srlinux setup with manager", func() {
-	It("should successfully setup the controller with the manager", func() {
-		k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-			Scheme: scheme.Scheme,
-		})
-		Expect(err).ToNot(HaveOccurred())
-
-		err = (&SrlinuxReconciler{
-			Client: k8sManager.GetClient(),
-			Scheme: k8sManager.GetScheme(),
-		}).SetupWithManager(k8sManager)
-		Expect(err).ToNot(HaveOccurred())
 	})
 })
