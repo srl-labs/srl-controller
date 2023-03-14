@@ -119,6 +119,7 @@ var _ = Describe("Srlinux controller", func() {
 				res, err := srlinuxReconciler.Reconcile(ctx, reconcile.Request{
 					NamespacedName: typeNamespaceName,
 				})
+
 				return res.IsZero() && err == nil
 			}, 10*time.Second, time.Second).Should(BeTrue())
 
@@ -155,6 +156,7 @@ var _ = Describe("Srlinux controller", func() {
 				res, err := srlinuxReconciler.Reconcile(ctx, reconcile.Request{
 					NamespacedName: typeNamespaceName,
 				})
+
 				return res.IsZero() && err == nil
 			}, 10*time.Second, time.Second).Should(BeTrue())
 
