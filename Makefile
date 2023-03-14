@@ -1,4 +1,5 @@
 include .mk/lint.mk
+include .mk/e2e.mk
 
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest

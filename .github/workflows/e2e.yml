@@ -1,0 +1,38 @@
+"on":
+  workflow_dispatch:
+    inputs:
+      kne_ref:
+        description: "openconfig/kne reference (tag, commit, branch)"
+        type: string
+        default: v0.24.4
+      kind_version:
+        description: "KinD version"
+        type: string
+        required: true
+        default: v0.17.0
+
+jobs:
+  e2e:
+    name: End-to-end test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set env vars
+        run: |
+          echo "KNE_REF=${{ inputs.kne_ref }}" >> $GITHUB_ENV
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GOVER }}
+
+      - name: set up kind cluster
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: ${{ inputs.kind_version }}
+
+      - uses: actions/checkout@v3
+      # - uses: fregante/setup-git-user@v1
+
+      - name: Publish structs
+        run: make install-srl-controller
