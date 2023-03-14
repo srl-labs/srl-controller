@@ -1,15 +1,21 @@
+name: E2E
+
 "on":
   workflow_dispatch:
     inputs:
       kne_ref:
         description: "openconfig/kne reference (tag, commit, branch)"
         type: string
-        default: v0.24.4
+        default: v0.1.7
+        required: true
       kind_version:
         description: "KinD version"
         type: string
         required: true
         default: v0.17.0
+
+env:
+  GOVER: 1.20.2
 
 jobs:
   e2e:
@@ -26,13 +32,15 @@ jobs:
         with:
           go-version: ${{ env.GOVER }}
 
-      - name: set up kind cluster
+      - name: Install kind
         uses: engineerd/setup-kind@v0.5.0
         with:
           version: ${{ inputs.kind_version }}
+          skipClusterCreation: true
 
       - uses: actions/checkout@v3
-      # - uses: fregante/setup-git-user@v1
 
-      - name: Publish structs
+      - name: Run e2e test
+        # this test ensures that srl-controller (built from referenced source) can be succesfully installed on a KNE cluster
+        # for a using specified versions of KNE/KinD
         run: make install-srl-controller
