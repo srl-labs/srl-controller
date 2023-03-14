@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package controllers
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -57,6 +58,19 @@ var (
 	testEnv   *envtest.Environment
 )
 
+// prepareEnvTest sets up the environment vars used by envtest to create a test environment.
+// The function executes only if KUBEBUILDER_ASSETS is not set. KUBEBUILDER_ASSETS is set in the Makefile when called via `make test`.
+// When not set, the function sets the KUBEBUILDER_ASSETS to the default location of the envtest binaries so that the tests can run
+// without the need to use `make test`.
+func prepareEnvTest() {
+	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
+		// Use the default location of the envtest binaries.
+		// note that the k8s version must match the version used in the Makefile.
+		assetstPath := filepath.Join("..", "bin", "k8s", "1.25.0-linux-amd64")
+		Expect(os.Setenv("KUBEBUILDER_ASSETS", assetstPath)).To(Succeed())
+	}
+}
+
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
@@ -65,6 +79,8 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	prepareEnvTest()
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
