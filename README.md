@@ -12,7 +12,7 @@ To install the latest version of this controller on a cluster referenced in `~/.
 # latest version
 kubectl apply -k https://github.com/srl-labs/srl-controller/config/default
 
-# specific version
+# specific version (using git reference, e.g. tag or commit)
 kubectl apply -k https://github.com/srl-labs/srl-controller/config/default?ref=v0.3.1
 ```
 
