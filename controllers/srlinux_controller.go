@@ -106,6 +106,9 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	srlinux := &srlinuxv1.Srlinux{}
 
+	// isReturn is used to indicate if the called function should return or continue reconciliation.
+	// This is needed since empty ctlr.Result{} can't be used to identify if we should return from the reconciliation
+	// or continue with the process when using called functions.
 	if res, isReturn, err := r.checkSrlinuxCR(ctx, log, req, srlinux); isReturn {
 		return res, err
 	}
@@ -155,6 +158,7 @@ func (r *SrlinuxReconciler) checkSrlinuxCR(
 		return ctrl.Result{}, true, err
 	}
 
+	// successfully got the Srlinux CR, continue with reconciliation
 	return ctrl.Result{}, false, nil
 }
 

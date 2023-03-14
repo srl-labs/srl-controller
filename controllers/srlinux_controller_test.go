@@ -75,7 +75,7 @@ var _ = Describe("Srlinux controller", func() {
 			_ = k8sClient.Delete(ctx, namespace)
 		})
 
-		It("should successfully reconcile a custom resource for Srlinux", func() {
+		It("should successfully reconcile a custom resource for Srlinux created with just an image referenced", func() {
 			By("Checking that Srlinux resource doesn't exist in the cluster")
 
 			srlinux := &srlinuxv1.Srlinux{}
@@ -139,6 +139,34 @@ var _ = Describe("Srlinux controller", func() {
 
 				return nil
 			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Deleting the custom resource for the Kind Srlinux")
+			Expect(k8sClient.Delete(ctx, srlinux)).Should(Succeed())
+
+			By("Checking if the custom resource was successfully deleted")
+			Eventually(func() error {
+				found := &srlinuxv1.Srlinux{}
+
+				return k8sClient.Get(ctx, typeNamespaceName, found)
+			}, 10*time.Second, time.Second).ShouldNot(Succeed())
+
+			By("Reconciling the custom resource deleted")
+			Eventually(func() bool {
+				res, err := srlinuxReconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: typeNamespaceName,
+				})
+				return res.IsZero() && err == nil
+			}, 10*time.Second, time.Second).Should(BeTrue())
+
+			By("Checking if the custom resource is not present")
+			Eventually(func() error {
+				found := &srlinuxv1.Srlinux{}
+
+				return k8sClient.Get(ctx, typeNamespaceName, found)
+			}, 10*time.Second, time.Second).ShouldNot(Succeed())
+
+			// we can't (likely?) check if the Pod was deleted because controller-manager is not running
+			// and won't clean up the pod based on the owner reference.
 		})
 	})
 })
