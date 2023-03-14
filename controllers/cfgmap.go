@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,7 +23,7 @@ const srlLicenseSecretName = "srlinux-licenses"
 func createConfigMaps(
 	ctx context.Context,
 	r *SrlinuxReconciler,
-	s *typesv1alpha1.Srlinux,
+	s *srlinuxv1.Srlinux,
 	log logr.Logger,
 ) error {
 	err := createVariantsCfgMap(ctx, r, s.Namespace, log)
@@ -54,7 +54,7 @@ func createVariantsCfgMap(
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("creating a new variants configmap")
 
-		data, err := VariantsFS.ReadFile("manifests/variants/srl_variants.yml")
+		data, err := variantsFS.ReadFile("manifests/variants/srl_variants.yml")
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func createTopomacScriptCfgMap(
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("creating a new topomac script configmap")
 
-		data, err := VariantsFS.ReadFile("manifests/variants/topomac.yml")
+		data, err := variantsFS.ReadFile("manifests/variants/topomac.yml")
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func createKNEEntrypointCfgMap(
 	if err != nil && errors.IsNotFound(err) {
 		log.Info("creating a new kne-entrypoint configmap")
 
-		data, err := VariantsFS.ReadFile("manifests/variants/kne-entrypoint.yml")
+		data, err := variantsFS.ReadFile("manifests/variants/kne-entrypoint.yml")
 		if err != nil {
 			return err
 		}

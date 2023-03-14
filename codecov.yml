@@ -1,0 +1,5 @@
+comment:
+  layout: "diff, files"
+  behavior: new
+ignore:
+  - api/v1/zz_generated.deepcopy.go

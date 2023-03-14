@@ -2,6 +2,8 @@
 
 This is a k8s controller for running and managing SR Linux nodes launched from [openconfig/kne](https://github.com/openconfig/kne) topology.
 
+Built with [kubebuilder v3.8.0](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v3.8.0).
+
 ## Install
 
 To install the latest version of this controller on a cluster referenced in `~/.kube/config`, issue the following command:
@@ -52,7 +54,7 @@ kubectl delete -k https://github.com/srl-labs/srl-controller/config/default
 
 ## Testing with `kne` & `kind`
 
-To run this controller in a test cluster deployed with [`kne`](https://github.com/openconfig/kne) and [`kind`](https://kind.sigs.k8s.io/) follow the steps outlined in the [KNE repository](https://github.com/openconfig/kne/tree/main/docs).
+To run the released version of the controller in a test cluster deployed with [`kne`](https://github.com/openconfig/kne) and [`kind`](https://kind.sigs.k8s.io/) follow the steps outlined in the [KNE repository](https://github.com/openconfig/kne/tree/main/docs).
 
 Once the kne+kind cluster is created and the `srl-controller` is installed onto it, a [demo topology with two SR Linux nodes](https://github.com/openconfig/kne/blob/db5fe5be01a1b6b65bd79e740e2c819c5aeb50b0/examples/srlinux/2node-srl-with-config.pbtxt) can be deployed as follows:
 
@@ -73,7 +75,7 @@ To connect with SSH to the `r1` node, use `ssh admin@172.19.0.50` command.
 
 ### Loading images to kind cluster
 
-[Public SR Linux container image](https://github.com/nokia/srlinux-container-image) will be pulled by kind automatically if Internet access is present. Images which are not available publicy can be uploaded to kind manually:
+[Public SR Linux container image](https://github.com/nokia/srlinux-container-image) will be pulled by kind automatically if Internet access is present. Images that are not available publicly can be uploaded to kind manually:
 
 ```bash
 # default kne kind cluster name is `kne`
@@ -138,6 +140,12 @@ docker push ghcr.io/srl-labs/srl-controller:${tag}
 ## Developers guide
 
 Developers should deploy the controller onto a cluster from the source code. Ensure that the `srl-controller` is [uninstalled](#uninstall) from the cluster before proceeding.
+
+The cluster should be deployed with the `kne` cli utility. First, make sure to remove the controller section from kne's `kind-bridge.yaml` file so that controllers are not installed automatically, as we will install srl-controller from the source code.
+
+```bash
+kne deploy deploy/kne/kind-bridge.yaml
+```
 
 Install the Srlinux CRDs onto the cluster
 

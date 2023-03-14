@@ -2,7 +2,7 @@
 // Licensed under the BSD 3-Clause License.
 // SPDX-License-Identifier: BSD-3-Clause
 
-package v1alpha1
+package v1
 
 const (
 	defaultSRLinuxImageName = "ghcr.io/nokia/srlinux"
@@ -10,7 +10,7 @@ const (
 )
 
 var (
-	// nolint: gochecknoglobals
+	//nolint:gochecknoglobals
 	defaultCmd = []string{
 		"/tini",
 		"--",
@@ -19,7 +19,7 @@ var (
 		"/kne-entrypoint.sh",
 	}
 
-	// nolint: gochecknoglobals
+	//nolint:gochecknoglobals
 	defaultArgs = []string{
 		"sudo",
 		"bash",
@@ -27,7 +27,7 @@ var (
 		"touch /.dockerenv && /opt/srlinux/bin/sr_linux",
 	}
 
-	// nolint: gochecknoglobals
+	//nolint:gochecknoglobals
 	defaultConstraints = map[string]string{
 		"cpu":    "0.5",
 		"memory": "1Gi",

@@ -1,8 +1,33 @@
-// Copyright 2022 Nokia
-// Licensed under the BSD 3-Clause License.
-// SPDX-License-Identifier: BSD-3-Clause
+/*
+Copyright (c) 2021 Nokia. All rights reserved.
 
-// Package controllers contains srlinux k8s/kne controller code
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 package controllers
 
 import (
@@ -19,13 +44,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/go-logr/logr"
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 )
 
 const (
 	controllerNamespace = "srlinux-controller"
 
-	initContainerName        = "networkop/init-wait:latest"
+	initContainerName        = "ghcr.io/srl-labs/init-wait:latest"
 	variantsVolName          = "variants"
 	variantsVolMntPath       = "/tmp/topo"
 	variantsTemplateTempName = "topo-template.yml"
@@ -51,9 +76,8 @@ const (
 	srlinuxPodAffinityWeight = 100
 )
 
-// VariantsFS is variable without fs assignment, since it is used in main.go
-// to assign a value for an fs that is in the outer scope of srlinux_controller.go.
-var VariantsFS embed.FS // nolint:gochecknoglobals
+//go:embed manifests/variants/*
+var variantsFS embed.FS
 
 // SrlinuxReconciler reconciles a Srlinux object.
 type SrlinuxReconciler struct {
@@ -61,9 +85,9 @@ type SrlinuxReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kne.srlinux.dev,resources=srlinuxes/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -76,15 +100,15 @@ type SrlinuxReconciler struct {
 // the user.
 //
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *SrlinuxReconciler) Reconcile(
-	ctx context.Context,
-	req ctrl.Request,
-) (ctrl.Result, error) {
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.1/pkg/reconcile
+func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	srlinux := &typesv1alpha1.Srlinux{}
+	srlinux := &srlinuxv1.Srlinux{}
 
+	// isReturn is used to indicate if the called function should return or continue reconciliation.
+	// This is needed since empty ctlr.Result{} can't be used to identify if we should return from the reconciliation
+	// or continue with the process when using called functions.
 	if res, isReturn, err := r.checkSrlinuxCR(ctx, log, req, srlinux); isReturn {
 		return res, err
 	}
@@ -107,7 +131,7 @@ func (r *SrlinuxReconciler) Reconcile(
 // SetupWithManager sets up the controller with the Manager.
 func (r *SrlinuxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&typesv1alpha1.Srlinux{}).
+		For(&srlinuxv1.Srlinux{}).
 		Owns(&corev1.Pod{}).
 		Complete(r)
 }
@@ -116,7 +140,7 @@ func (r *SrlinuxReconciler) checkSrlinuxCR(
 	ctx context.Context,
 	log logr.Logger,
 	req ctrl.Request,
-	srlinux *typesv1alpha1.Srlinux,
+	srlinux *srlinuxv1.Srlinux,
 ) (ctrl.Result, bool, error) {
 	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
 		if errors.IsNotFound(err) {
@@ -134,16 +158,18 @@ func (r *SrlinuxReconciler) checkSrlinuxCR(
 		return ctrl.Result{}, true, err
 	}
 
+	// successfully got the Srlinux CR, continue with reconciliation
 	return ctrl.Result{}, false, nil
 }
 
 func (r *SrlinuxReconciler) checkSrlinuxPod(
 	ctx context.Context,
 	log logr.Logger,
-	srlinux *typesv1alpha1.Srlinux,
+	srlinux *srlinuxv1.Srlinux,
 	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
 	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
+	// if pod was not found, create a new one
 	if err != nil && errors.IsNotFound(err) {
 		err = createConfigMaps(ctx, r, srlinux, log)
 		if err != nil {
@@ -183,7 +209,7 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 func (r *SrlinuxReconciler) updateSrlinuxStatus(
 	ctx context.Context,
 	log logr.Logger,
-	srlinux *typesv1alpha1.Srlinux,
+	srlinux *srlinuxv1.Srlinux,
 	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
 	if !reflect.DeepEqual(found.Spec.Containers[0].Image, srlinux.Status.Image) {

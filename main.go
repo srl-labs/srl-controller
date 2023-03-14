@@ -5,7 +5,6 @@
 package main
 
 import (
-	"embed"
 	"flag"
 	"os"
 
@@ -20,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	typesv1alpha1 "github.com/srl-labs/srl-controller/api/types/v1alpha1"
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	"github.com/srl-labs/srl-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -28,24 +27,19 @@ import (
 const ctrlManagerPort = 9443
 
 var (
-	scheme   = runtime.NewScheme()        // nolint: gochecknoglobals
-	setupLog = ctrl.Log.WithName("setup") // nolint: gochecknoglobals
-
-	//go:embed manifests/variants/*
-	variantsFS embed.FS
+	scheme   = runtime.NewScheme()        //nolint:gochecknoglobals
+	setupLog = ctrl.Log.WithName("setup") //nolint:gochecknoglobals
 )
 
+//nolint:wsl
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(typesv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(srlinuxv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
-
-	// make manifests available to controllers package
-	controllers.VariantsFS = variantsFS
 }
 
-func main() { // nolint: funlen
+func main() { //nolint:funlen
 	var metricsAddr string
 
 	var enableLeaderElection bool
