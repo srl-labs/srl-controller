@@ -16,7 +16,6 @@ output:
 linters:
   enable:
     - nlreturn
-    - forbidigo
     - gofumpt
     - bodyclose
     - depguard
