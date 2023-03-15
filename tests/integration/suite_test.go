@@ -1,21 +1,15 @@
 /*
 Copyright (c) 2021 Nokia. All rights reserved.
-
-
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-
 1. Redistributions of source code must retain the above copyright notice, this
    list of conditions and the following disclaimer.
-
 2. Redistributions in binary form must reproduce the above copyright notice,
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
-
 3. Neither the name of the copyright holder nor the names of its
    contributors may be used to endorse or promote products derived from
    this software without specific prior written permission.
-
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,39 +22,35 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-package controllers
+package integration_controllers_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	srlctrl "github.com/srl-labs/srl-controller/controllers"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
-	//+kubebuilder:scaffold:imports
 )
 
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
 var (
-	cfg       *rest.Config
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
-	cancel    context.CancelFunc
+	env        *envtest.Environment
+	ctx        context.Context
+	cancel     context.CancelFunc
+	fakeScheme = runtime.NewScheme()
+	k8sClient  client.Client
 )
 
 // prepareEnvTest sets up the environment vars used by envtest to create a test environment.
@@ -72,64 +62,81 @@ func prepareEnvTest() {
 		// Use the default location of the envtest binaries.
 		// note that the k8s version must match the version used in the Makefile.
 		assetstPath := filepath.Join("..", "..", "bin", "k8s", "1.25.0-linux-amd64")
-		Expect(os.Setenv("KUBEBUILDER_ASSETS", assetstPath)).To(Succeed())
+		os.Setenv("KUBEBUILDER_ASSETS", assetstPath)
 	}
 }
 
-func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
-}
-
-var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	ctx, cancel = context.WithCancel(context.TODO())
-
+// TestMain is the entry point for the integration tests.
+// It sets up the envtest environment and starts the controller manager.
+func TestMain(m *testing.M) {
 	prepareEnvTest()
 
-	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
+	ctx, cancel = context.WithCancel(context.TODO())
+
+	logf.SetLogger(zap.New(zap.UseDevMode(true)))
+
+	env = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 
-	var err error
-	// cfg is defined in this file globally.
-	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+	SetDefaultEventuallyTimeout(10 * time.Second)
 
-	err = srlinuxv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	cfg, err := env.Start()
+	if err != nil {
+		panic(err)
+	}
 
-	//+kubebuilder:scaffold:scheme
+	// add k8s scheme
+	if err := clientgoscheme.AddToScheme(fakeScheme); err != nil {
+		panic(err)
+	}
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
+	// add srlinux scheme
+	if err := srlinuxv1.AddToScheme(fakeScheme); err != nil {
+		panic(err)
+	}
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: fakeScheme})
+	if err != nil {
+		panic(err)
+	}
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme.Scheme,
+		Scheme: fakeScheme,
 	})
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		panic(err)
+	}
 
 	err = (&srlctrl.SrlinuxReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		panic(err)
+	}
 
 	go func() {
-		defer GinkgoRecover()
-		err = k8sManager.Start(ctx)
-		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
-	}()
-})
+		fmt.Println("Starting the test environment manager")
 
-var _ = AfterSuite(func() {
+		if err := k8sManager.Start(ctx); err != nil {
+			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
+		}
+	}()
+	<-k8sManager.Elected()
+
+	rc := m.Run()
+
 	cancel()
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
-})
+
+	fmt.Println("Tearing down the test environment")
+
+	err = env.Stop()
+	if err != nil {
+		panic(err)
+	}
+
+	os.Exit(rc)
+}
