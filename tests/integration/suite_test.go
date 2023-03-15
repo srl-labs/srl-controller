@@ -39,6 +39,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	srlctrl "github.com/srl-labs/srl-controller/controllers"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -70,7 +71,7 @@ func prepareEnvTest() {
 	if os.Getenv("KUBEBUILDER_ASSETS") == "" {
 		// Use the default location of the envtest binaries.
 		// note that the k8s version must match the version used in the Makefile.
-		assetstPath := filepath.Join("..", "bin", "k8s", "1.25.0-linux-amd64")
+		assetstPath := filepath.Join("..", "..", "bin", "k8s", "1.25.0-linux-amd64")
 		Expect(os.Setenv("KUBEBUILDER_ASSETS", assetstPath)).To(Succeed())
 	}
 }
@@ -89,7 +90,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -113,7 +114,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&SrlinuxReconciler{
+	err = (&srlctrl.SrlinuxReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
