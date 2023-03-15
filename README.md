@@ -135,6 +135,10 @@ Finally, upload the container image to the registry:
 
 ```bash
 docker push ghcr.io/srl-labs/srl-controller:${tag}
+
+# if this is the latest version, also push it with the `latest` tag
+docker tag ghcr.io/srl-labs/srl-controller:${tag} ghcr.io/srl-labs/srl-controller:latest
+docker push ghcr.io/srl-labs/srl-controller:latest
 ```
 
 ## Developers guide
