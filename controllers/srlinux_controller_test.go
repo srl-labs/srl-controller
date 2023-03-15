@@ -35,6 +35,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+
 	opts := zap.Options{
 		Development: true,
 	}
@@ -45,8 +46,8 @@ func TestMain(m *testing.M) {
 	SetDefaultEventuallyTimeout(30 * time.Second)
 
 	os.Exit(m.Run())
-
 }
+
 func TestSrlinuxReconcile(t *testing.T) {
 	testsCases := []struct {
 		descr      string
@@ -69,12 +70,12 @@ func TestSrlinuxReconcile(t *testing.T) {
 					},
 				},
 			},
-			testFn: testSrlinuxReconcile_succesful,
+			testFn: testReconcileForBasicSrlCR,
 		},
 		{
 			descr:      "SR Linux CR doesn't exists (e.g. deleted)",
 			clientObjs: []runtime.Object{},
-			testFn:     testSrlinuxReconcile_deleted,
+			testFn:     testReconcileForDeletedCR,
 		},
 	}
 
@@ -93,11 +94,12 @@ func TestSrlinuxReconcile(t *testing.T) {
 	}
 }
 
-func testSrlinuxReconcile_succesful(t *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
+func testReconcileForBasicSrlCR(t *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
 	g.Eventually(func() bool {
 		res, err := reconciler.Reconcile(context.TODO(), reconcile.Request{
 			NamespacedName: namespacedName,
 		})
+
 		return res.IsZero() && err == nil
 	}, 10*time.Second, time.Second).Should(BeTrue())
 
@@ -111,11 +113,12 @@ func testSrlinuxReconcile_succesful(t *testing.T, c client.Client, reconciler Sr
 	g.Expect(srlinux.Status.Image).To(Equal(defaultSrlinuxImage))
 }
 
-func testSrlinuxReconcile_deleted(t *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
+func testReconcileForDeletedCR(t *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
 	g.Eventually(func() bool {
 		res, err := reconciler.Reconcile(context.TODO(), reconcile.Request{
 			NamespacedName: namespacedName,
 		})
+
 		return res.IsZero() && err == nil
 	}, 10*time.Second, time.Second).Should(BeTrue())
 
