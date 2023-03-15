@@ -94,7 +94,7 @@ func TestSrlinuxReconcile(t *testing.T) {
 	}
 }
 
-func testReconcileForBasicSrlCR(t *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
+func testReconcileForBasicSrlCR(_ *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
 	g.Eventually(func() bool {
 		res, err := reconciler.Reconcile(context.TODO(), reconcile.Request{
 			NamespacedName: namespacedName,
@@ -113,7 +113,7 @@ func testReconcileForBasicSrlCR(t *testing.T, c client.Client, reconciler Srlinu
 	g.Expect(srlinux.Status.Image).To(Equal(defaultSrlinuxImage))
 }
 
-func testReconcileForDeletedCR(t *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
+func testReconcileForDeletedCR(_ *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT) {
 	g.Eventually(func() bool {
 		res, err := reconciler.Reconcile(context.TODO(), reconcile.Request{
 			NamespacedName: namespacedName,
