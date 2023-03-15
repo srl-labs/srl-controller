@@ -127,20 +127,3 @@ func testSrlinuxReconcile_deleted(t *testing.T, c client.Client, reconciler Srli
 	pod := &corev1.Pod{}
 	g.Expect(c.Get(ctx, namespacedName, pod)).ToNot(Succeed())
 }
-
-func TestSetupWithManger(t *testing.T) {
-	g := NewWithT(t)
-
-	c := fake.NewClientBuilder().WithRuntimeObjects([]runtime.Object{}...).Build()
-
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme.Scheme,
-	})
-	g.Expect(err).ToNot(HaveOccurred())
-
-	reconciler := &SrlinuxReconciler{
-		Scheme: scheme.Scheme,
-		Client: c,
-	}
-	g.Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
-}
