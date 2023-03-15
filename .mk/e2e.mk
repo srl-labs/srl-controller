@@ -1,5 +1,5 @@
 # KNE_REF is a git reference to use for KNE. It can be a branch, tag, or commit hash.
-KNE_REF ?= dee1995a7ec0f446b159a35fad201df9185ee75d
+KNE_REF ?= v0.1.8
 KNE_REPO := https://github.com/openconfig/kne.git
 KNE_TEMP_DIR := /tmp/.srlcontroller-tests/kne
 KNE_TEST_DEPLOYMENT_FILE := ${KNE_TEMP_DIR}/deploy/kne/kind-bridge-no-controllers.yaml

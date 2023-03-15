@@ -6,7 +6,7 @@ name: E2E
       kne_ref:
         description: "openconfig/kne reference (tag, commit, branch)"
         type: string
-        default: v0.1.7
+        default: v0.1.8
         required: true
       kind_version:
         description: "KinD version"
