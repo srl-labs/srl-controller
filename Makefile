@@ -81,6 +81,10 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
+.PHONY: only-docker-build
+only-docker-build: ## Build docker image with the manager without running the test step.
+	docker build -t ${IMG} .
+
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
