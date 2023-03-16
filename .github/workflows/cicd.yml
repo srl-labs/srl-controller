@@ -7,10 +7,11 @@ name: CICD
 on:
   push:
     branches:
-      - master
+      - main
     tags:
       - "v*"
   pull_request:
+  workflow_dispatch:
 
 env:
   GOVER: 1.20.2
@@ -18,19 +19,19 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOVER }}
-      - name: kubebuilder tests
+      - name: Test
         run: make test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
 
   golang-ci-lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -44,3 +45,34 @@ jobs:
         with:
           args: --config=./.github/workflows/linters/.golangci.yml
           version: "v1.51.2"
+
+  release:
+    runs-on: ubuntu-22.04
+    # start this job if a tag has been pushed
+    # a tag is considered a release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - golang-ci-lint
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GOVER }}
+
+      - name: Build container
+        run: "IMG=ghcr.io/srl-labs/srl-controller:$GITHUB_REF_NAME make docker-build"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push container
+        run: "IMG=ghcr.io/srl-labs/srl-controller:$GITHUB_REF_NAME make docker-push"
+
+      - name: Create GH release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
