@@ -69,7 +69,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push container
-        run: "IMG=ghcr.io/srl-labs/srl-controller:$GITHUB_REF_NAME make docker-push"
+        run: |
+          docker push ghcr.io/srl-labs/srl-controller:$GITHUB_REF_NAME
+          docker tag ghcr.io/srl-labs/srl-controller:$GITHUB_REF_NAME ghcr.io/srl-labs/srl-controller:latest
+          docker push ghcr.io/srl-labs/srl-controller:latest
 
       - name: Create GH release
         uses: softprops/action-gh-release@v1
