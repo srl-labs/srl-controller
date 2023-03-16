@@ -20,6 +20,9 @@ env:
 jobs:
   test:
     runs-on: ubuntu-22.04
+    # skip test job for tagged releases, as tagged release will run the tests
+    # as part of the make docker-image target
+    if: startsWith(github.ref, 'refs/tags/v') != true
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
