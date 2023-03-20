@@ -114,7 +114,7 @@ func TestSrlinuxReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			found := &corev1.Pod{}
 
-			k8sClient.Get(ctx, namespacedName, found)
+			g.Expect(k8sClient.Get(ctx, namespacedName, found)).Should(Succeed())
 
 			return found.Status.Phase == corev1.PodRunning
 		}, srlinuxMaxStartupTime, time.Second).Should(BeTrue())
