@@ -44,7 +44,7 @@ jobs:
       - name: Prepare e2e environment
         run: prepare-e2e-env
 
-      - name: Run e2e test
+      - name: Run e2e tests
         # this test ensures that srl-controller (built from referenced source) can be succesfully installed on a KNE cluster
         # for a using specified versions of KNE/KinD
-        run: make run-e2e
+        run: make test-e2e

@@ -1,5 +1,5 @@
 # KNE_REF is a git reference to use for KNE. It can be a branch, tag, or commit hash.
-KNE_REF ?= v0.1.8
+KNE_REF ?= v0.1.9
 KNE_REPO := https://github.com/openconfig/kne.git
 KNE_TEMP_DIR := /tmp/.srlcontroller-tests/kne
 KNE_TEST_DEPLOYMENT_FILE := ${KNE_TEMP_DIR}/deploy/kne/kind-bridge-no-controllers.yaml
@@ -43,3 +43,7 @@ kind-load-image:  ## Load SR Linux container image to kind cluster
 
 .PHONY: prepare-e2e-env
 prepare-e2e-env: install-kne kne-test-deployment-cfg-file deploy-kne temp-docker-build install-srl-controller kind-load-image ## Install srl-controller from current working dir
+
+.PHONY: test-e2e
+test-e2e: ## Test e2e using kind
+	go test -v github.com/srl-labs/srl-controller/tests/e2e
