@@ -6,7 +6,7 @@ name: E2E
       kne_ref:
         description: "openconfig/kne reference (tag, commit, branch)"
         type: string
-        default: v0.1.8
+        default: v0.1.9
         required: true
       kind_version:
         description: "KinD version"
@@ -28,19 +28,23 @@ jobs:
           echo "KNE_REF=${{ inputs.kne_ref }}" >> $GITHUB_ENV
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GOVER }}
 
       - name: Install kind
         uses: engineerd/setup-kind@v0.5.0
         with:
+          name: srl-test # cluster name
           version: ${{ inputs.kind_version }}
           skipClusterCreation: true
 
       - uses: actions/checkout@v3
 
-      - name: Run e2e test
+      - name: Prepare e2e environment
+        run: make prepare-e2e-env
+
+      - name: Run e2e tests
         # this test ensures that srl-controller (built from referenced source) can be succesfully installed on a KNE cluster
         # for a using specified versions of KNE/KinD
-        run: make install-srl-controller
+        run: make test-e2e
