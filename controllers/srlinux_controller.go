@@ -109,14 +109,14 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// isReturn is used to indicate if the called function should return or continue reconciliation.
 	// This is needed since empty ctlr.Result{} can't be used to identify if we should return from the reconciliation
 	// or continue with the process when using called functions.
-	if res, isReturn, err := r.checkSrlinuxCR(ctx, log, req, srlinux); isReturn {
+	if res, isReturn, err := r.handleSrlinuxCR(ctx, log, req, srlinux); isReturn {
 		return res, err
 	}
 
 	// Check if the srlinux pod already exists, if not create a new one
 	found := &corev1.Pod{}
 
-	if res, isReturn, err := r.checkSrlinuxPod(ctx, log, srlinux, found); isReturn {
+	if res, isReturn, err := r.handleSrlinuxPod(ctx, log, srlinux, found); isReturn {
 		return res, err
 	}
 
@@ -136,7 +136,9 @@ func (r *SrlinuxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *SrlinuxReconciler) checkSrlinuxCR(
+// handleSrlinuxCR handles SR Linux custom resouce. It fetches the CR based on the namespaced name
+// and handles cases when the object appears to be deleted.
+func (r *SrlinuxReconciler) handleSrlinuxCR(
 	ctx context.Context,
 	log logr.Logger,
 	req ctrl.Request,
@@ -162,7 +164,8 @@ func (r *SrlinuxReconciler) checkSrlinuxCR(
 	return ctrl.Result{}, false, nil
 }
 
-func (r *SrlinuxReconciler) checkSrlinuxPod(
+// handleSrlinuxPod handles Pod lifecycle for Srlinux CR.
+func (r *SrlinuxReconciler) handleSrlinuxPod(
 	ctx context.Context,
 	log logr.Logger,
 	srlinux *srlinuxv1.Srlinux,
@@ -206,6 +209,7 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 	return ctrl.Result{}, false, err
 }
 
+// updateSrlinuxStatus updates Srlinux status.
 func (r *SrlinuxReconciler) updateSrlinuxStatus(
 	ctx context.Context,
 	log logr.Logger,
