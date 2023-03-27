@@ -196,6 +196,8 @@ func handleStartupConfig(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger)
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
 			Name: "startup-config-volume",
 			VolumeSource: corev1.VolumeSource{
+				// kne creates the configmap with the name <node-name>-config,
+				// so we use it as the source for the volume mount
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: fmt.Sprintf("%s-config", s.Name),
