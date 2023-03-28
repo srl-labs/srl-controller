@@ -62,6 +62,12 @@ Once the kne+kind cluster is created and the `srl-controller` is installed onto 
 kne create examples/srlinux/2node-srl-with-config.pbtxt
 ```
 
+Note, that controller logs can be viewed live with:
+
+```bash
+kubectl logs --follow -n srlinux-controller $(kubectl get pods -A | grep srlinux-controller | awk '{print $2}')
+```
+
 This will deploy the SR Linux nodes and will create k8s services as per the topology configuration. The services will be exposed via MetalLB and can be queried as:
 
 ```text
