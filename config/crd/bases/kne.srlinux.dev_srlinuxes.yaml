@@ -138,7 +138,7 @@ spec:
                 properties:
                   phase:
                     description: 'Phase is the phase startup-config is in. Can be
-                      one of: "pending", "loaded", "not-provided", "error".'
+                      one of: "pending", "loaded", "not-provided", "failed".'
                     type: string
                 type: object
               status:

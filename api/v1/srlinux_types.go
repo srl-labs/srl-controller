@@ -69,7 +69,7 @@ type SrlinuxStatus struct {
 }
 
 type StartupConfigStatus struct {
-	// Phase is the phase startup-config is in. Can be one of: "pending", "loaded", "not-provided", "error".
+	// Phase is the phase startup-config is in. Can be one of: "pending", "loaded", "not-provided", "failed".
 	Phase string `json:"phase,omitempty"`
 }
 

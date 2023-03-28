@@ -3,12 +3,16 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/scrapli/scrapligo/driver/network"
 	"github.com/scrapli/scrapligo/driver/options"
 	"github.com/scrapli/scrapligo/platform"
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -18,6 +22,9 @@ const (
 	// default path to a startup config directory
 	// the default for config file name resides within kne.
 	defaultConfigPath = "/tmp/startup-config"
+
+	podIPReadyTimeout  = 60 * time.Second
+	podIPReadyInterval = 2 * time.Second
 )
 
 // handleStartupConfig creates volume mounts and volumes for srlinux pod
@@ -46,7 +53,7 @@ func handleStartupConfig(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger)
 			Name: "startup-config-volume",
 			VolumeSource: corev1.VolumeSource{
 				// kne creates the configmap with the name <node-name>-config,
-				// so we use it as the source for the volume mount
+				// so we use it as the source for the volume
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: fmt.Sprintf("%s-config", s.Name),
@@ -69,73 +76,69 @@ func handleStartupConfig(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger)
 func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 	ctx context.Context,
 	log logr.Logger,
+	update *bool,
 	srlinux *srlinuxv1.Srlinux,
-	pod *corev1.Pod,
-) error {
+) {
+	if srlinux.Status.StartupConfig.Phase == "loaded" ||
+		srlinux.Status.StartupConfig.Phase == "failed" {
+		log.Info("startup config load already tried, skipping")
+
+		return
+	}
+
 	// if startup config data is not provided and the state is not "not-provided", set the state to "not-provided"
 	// so that we only log the message once
 	if !srlinux.Spec.GetConfig().ConfigDataPresent {
-		if srlinux.Status.StartupConfig.Phase != "not-provided" {
-			log.Info("no startup config data provided, continuing")
+		log.Info("no startup config data provided")
 
-			srlinux.Status.StartupConfig.Phase = "not-provided"
-		}
+		srlinux.Status.StartupConfig.Phase = "not-provided"
+		*update = true
 
-		return nil
+		return
 	}
 
-	log.Info("startup config data present")
+	log.Info("startup config provided, starting config provisioning...")
 
-	if pod.Status.PodIP == "" {
-		log.Info("pod IP not yet assigned, skipping configuration provisioning")
+	ip := r.waitPodIPReady(ctx, log, srlinux)
 
-		srlinux.Status.StartupConfig.Phase = "pending"
-
-		return nil
+	// even though the SR Linux management server is ready, the network might not be ready yet
+	// which results in transport errors when trying to open the scrapligo network driver.
+	// Hence we need to wait for the network to be ready.
+	driver := r.waitNetworkReady(ctx, log, ip)
+	if driver == nil {
+		return
 	}
 
-	log.Info("pod IP assigned, provisioning configuration", "pod-ip", pod.Status.PodIP)
+	log.Info("Loading provided startup configuration...", "filename",
+		srlinux.Spec.GetConfig().ConfigFile, "path", defaultConfigPath)
 
-	return loadStartupConfig(ctx, pod.Status.PodIP, log)
+	err := loadStartupConfig(ctx, driver, srlinux.Spec.GetConfig().ConfigFile, log)
+	if err != nil {
+		srlinux.Status.StartupConfig.Phase = "failed"
+		*update = true
+
+		log.Error(err, "failed to load provided startup configuration")
+
+		return
+	}
+
+	log.Info("Loaded provided startup configuration...")
+	srlinux.Status.StartupConfig.Phase = "loaded"
+	*update = true
 }
 
+// loadStartupConfig loads the provided startup config into the SR Linux device.
+// It distinct between CLI- and JSON-styled configs and applies them accordingly.
 func loadStartupConfig(
 	ctx context.Context,
-	podIP string,
+	d *network.Driver,
+	fileName string,
 	log logr.Logger,
 ) error {
-	p, err := platform.NewPlatform(
-		// cisco_iosxe refers to the included cisco iosxe platform definition
-		"nokia_srl",
-		podIP,
-		options.WithAuthNoStrictKey(),
-		options.WithTransportType("standard"),
-		options.WithAuthUsername(username),
-		options.WithAuthPassword(password),
-	)
-	if err != nil {
-		log.Error(err, "failed to create platform")
-
-		return err
-	}
-
-	d, err := p.GetNetworkDriver()
-	if err != nil {
-		log.Error(err, "failed to fetch network driver from the platform")
-
-		return err
-	}
-
-	err = d.Open()
-	if err != nil {
-		log.Error(err, "failed to open driver")
-
-		return err
-	}
-
 	defer d.Close()
+	cmds := createCmds(fileName, defaultConfigPath)
 
-	r, err := d.SendConfigs([]string{"source /tmp/startup-config/config.json", "commit now"})
+	r, err := d.SendConfigs(cmds)
 	if err != nil {
 		log.Error(err, "failed to send commands")
 
@@ -149,4 +152,119 @@ func loadStartupConfig(
 	}
 
 	return nil
+}
+
+// createCmds creates the commands to be sent to the device based on the extension of the
+// provided startup config.
+func createCmds(fileName, path string) []string {
+	ext := filepath.Ext(fileName)
+
+	cmds := []string{}
+
+	switch ext {
+	case ".json":
+		cmds = append(cmds, fmt.Sprintf("load file %s/%s", path, fileName))
+	case ".cli":
+		cmds = append(cmds, fmt.Sprintf("source %s/%s", path, fileName))
+	}
+
+	cmds = append(cmds, "commit now")
+
+	return cmds
+}
+
+// podIPReady checks if the pod IP is assigned and sets the startup config phase to "pending" if not.
+func (r *SrlinuxReconciler) waitPodIPReady(
+	ctx context.Context,
+	log logr.Logger,
+	srlinux *srlinuxv1.Srlinux,
+) (podIP string) {
+	timeout := time.After(podIPReadyTimeout)
+
+	tick := time.NewTicker(podIPReadyInterval)
+	defer tick.Stop()
+	for {
+		select {
+		case <-timeout:
+			log.Error(fmt.Errorf("timed out waiting for pod IP"), "pod IP not assigned")
+			return ""
+		case <-tick.C:
+			ip := r.getPodIP(ctx, srlinux)
+			if ip != "" {
+				log.Info("pod IP assigned, provisioning configuration", "pod-ip", ip)
+				return ip
+			}
+		}
+	}
+}
+
+// getPodIP returns the pod IP.
+func (r *SrlinuxReconciler) getPodIP(ctx context.Context, srlinux *srlinuxv1.Srlinux) string {
+	pod := &corev1.Pod{}
+	r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, pod)
+
+	return pod.Status.PodIP
+}
+
+// waitNetworkReady checks if the network driver is ready and returns it.
+func (r *SrlinuxReconciler) waitNetworkReady(
+	ctx context.Context,
+	log logr.Logger,
+	podIP string,
+) *network.Driver {
+	timeout := time.After(podIPReadyTimeout)
+
+	tick := time.NewTicker(podIPReadyInterval)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			log.Error(fmt.Errorf("timed out waiting network readiness"), "Network not ready")
+			return nil
+		case <-tick.C:
+			log.Info("waiting for network readiness...")
+
+			d := r.getNetworkDriver(ctx, log, podIP)
+			if d != nil {
+				log.Info("network ready")
+				return d
+			}
+		}
+	}
+}
+
+// getNetworkDriver returns the opened network driver for a given pod IP.
+func (r *SrlinuxReconciler) getNetworkDriver(_ context.Context, log logr.Logger, podIP string) *network.Driver {
+	p, err := platform.NewPlatform(
+		"nokia_srl",
+		podIP,
+		options.WithAuthNoStrictKey(),
+		options.WithTransportType("standard"),
+		options.WithAuthUsername(username),
+		options.WithAuthPassword(password),
+	)
+	if err != nil {
+		log.Error(err, "failed to create platform")
+
+		return nil
+	}
+
+	d, err := p.GetNetworkDriver()
+	if err != nil {
+		log.Error(err, "failed to fetch network driver from the platform")
+
+		return nil
+	}
+
+	err = d.Open()
+	if err != nil {
+		log.Error(err, "failed to open driver")
+
+		return nil
+	}
+
+	log.Info("SSH connection to pod established")
+
+	return d
 }
