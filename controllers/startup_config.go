@@ -123,6 +123,7 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 	}
 
 	log.Info("Loaded provided startup configuration...")
+
 	srlinux.Status.StartupConfig.Phase = "loaded"
 	*update = true
 }
@@ -130,12 +131,13 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 // loadStartupConfig loads the provided startup config into the SR Linux device.
 // It distinct between CLI- and JSON-styled configs and applies them accordingly.
 func loadStartupConfig(
-	ctx context.Context,
+	_ context.Context,
 	d *network.Driver,
 	fileName string,
 	log logr.Logger,
 ) error {
 	defer d.Close()
+
 	cmds := createCmds(fileName, defaultConfigPath)
 
 	r, err := d.SendConfigs(cmds)
@@ -180,13 +182,14 @@ func (r *SrlinuxReconciler) waitPodIPReady(
 	srlinux *srlinuxv1.Srlinux,
 ) (podIP string) {
 	timeout := time.After(podIPReadyTimeout)
-
 	tick := time.NewTicker(podIPReadyInterval)
+
 	defer tick.Stop()
+
 	for {
 		select {
 		case <-timeout:
-			log.Error(fmt.Errorf("timed out waiting for pod IP"), "pod IP not assigned")
+			log.Error(fmt.Errorf("timed out waiting for pod IP"), "pod IP not assigned") //nolint:goerr113
 			return ""
 		case <-tick.C:
 			ip := r.getPodIP(ctx, srlinux)

@@ -24,6 +24,9 @@ const (
 	licenseMntPath                = "/opt/srlinux/etc/license.key"
 	licenseMntSubPath             = "license.key"
 	readinessFile                 = "/etc/opt/srlinux/devices/app_ephemeral.mgmt_server.ready_for_config"
+	readinessInitialDelay         = 10
+	readinessPeriodSeconds        = 5
+	readinessFailureThreshold     = 10
 )
 
 // podForSrlinux returns a srlinux Pod object.
@@ -107,9 +110,9 @@ func createContainers(s *srlinuxv1.Srlinux) []corev1.Container {
 					},
 				},
 			},
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       5,
-			FailureThreshold:    10,
+			InitialDelaySeconds: readinessInitialDelay,
+			PeriodSeconds:       readinessPeriodSeconds,
+			FailureThreshold:    readinessFailureThreshold,
 		},
 	}}
 }

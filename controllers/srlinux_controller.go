@@ -154,7 +154,7 @@ func (r *SrlinuxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// handleSrlinuxCR handles SR Linux custom resouce. It fetches the CR based on the namespaced name
+// handleSrlinuxCR handles SR Linux custom resource. It fetches the CR based on the namespaced name
 // and handles cases when the object appears to be deleted.
 func (r *SrlinuxReconciler) handleSrlinuxCR(
 	ctx context.Context,
@@ -250,7 +250,7 @@ func (r *SrlinuxReconciler) handleSrlinuxPod(
 func (r *SrlinuxReconciler) updateSrlinuxStatus(
 	ctx context.Context,
 	log logr.Logger,
-	req ctrl.Request,
+	_ ctrl.Request,
 	srlinux *srlinuxv1.Srlinux,
 ) (ctrl.Result, bool, error) {
 	log.Info("updating srlinux status", "srlinux-status", srlinux.Status)
