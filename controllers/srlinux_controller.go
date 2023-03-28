@@ -113,18 +113,18 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Check if the srlinux pod already exists, if not create a new one
-	found := &corev1.Pod{}
+	pod := &corev1.Pod{}
 
-	if res, isReturn, err := r.handleSrlinuxPod(ctx, log, srlinux, found); isReturn {
+	if res, isReturn, err := r.handleSrlinuxPod(ctx, log, srlinux, pod); isReturn {
 		return res, err
 	}
 
-	if err := r.handleSrlinuxStartupConfig(ctx, log, req, srlinux, found); err != nil {
+	if err := r.handleSrlinuxStartupConfig(ctx, log, srlinux, pod); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// updating Srlinux status
-	if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, req, srlinux, found); isReturn {
+	if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, req, srlinux, pod); isReturn {
 		return res, err
 	}
 
@@ -172,9 +172,9 @@ func (r *SrlinuxReconciler) handleSrlinuxPod(
 	ctx context.Context,
 	log logr.Logger,
 	srlinux *srlinuxv1.Srlinux,
-	found *corev1.Pod,
+	pod *corev1.Pod,
 ) (ctrl.Result, bool, error) {
-	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
+	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, pod)
 	// if pod was not found, create a new one
 	if err != nil && errors.IsNotFound(err) {
 		err = createConfigMaps(ctx, r, srlinux, log)
@@ -210,8 +210,8 @@ func (r *SrlinuxReconciler) handleSrlinuxPod(
 	}
 
 	// setting status of srlinux CR
-	srlinux.Status.Image = found.Spec.Containers[0].Image
-	srlinux.Status.Status = string(found.Status.Phase)
+	srlinux.Status.Image = pod.Spec.Containers[0].Image
+	srlinux.Status.Status = string(pod.Status.Phase)
 
 	return ctrl.Result{}, false, err
 }

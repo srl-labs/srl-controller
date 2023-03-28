@@ -6,13 +6,11 @@ import (
 	"github.com/go-logr/logr"
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 	ctx context.Context,
 	log logr.Logger,
-	req ctrl.Request,
 	srlinux *srlinuxv1.Srlinux,
 	pod *corev1.Pod,
 ) error {
