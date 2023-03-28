@@ -63,10 +63,13 @@ type SrlinuxStatus struct {
 	Image string `json:"image,omitempty"`
 	// StartupConfig contains the status of the startup-config.
 	StartupConfig StartupConfigStatus `json:"startup-config,omitempty"`
+	// Ready is true if the srlinux NOS is ready to receive config.
+	// This is when management server is running and initial commit is processed.
+	Ready bool `json:"ready,omitempty"`
 }
 
 type StartupConfigStatus struct {
-	// Phase is the phase startup-config is in. Can be one of: "in-progress", "loaded", "not-provided", "error".
+	// Phase is the phase startup-config is in. Can be one of: "pending", "loaded", "not-provided", "error".
 	Phase string `json:"phase,omitempty"`
 }
 
@@ -77,6 +80,7 @@ type StartupConfigStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
+// +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready"
 type Srlinux struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

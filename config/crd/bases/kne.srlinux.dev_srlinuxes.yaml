@@ -25,6 +25,9 @@ spec:
     - jsonPath: .status.status
       name: Status
       type: string
+    - jsonPath: .status.ready
+      name: Ready
+      type: boolean
     name: v1
     schema:
       openAPIV3Schema:
@@ -125,12 +128,17 @@ spec:
               image:
                 description: Image used to run srlinux pod
                 type: string
+              ready:
+                description: Ready is true if the srlinux NOS is ready to receive
+                  config. This is when management server is running and initial commit
+                  is processed.
+                type: boolean
               startup-config:
                 description: StartupConfig contains the status of the startup-config.
                 properties:
                   phase:
                     description: 'Phase is the phase startup-config is in. Can be
-                      one of: "in-progress", "loaded", "not-provided", "error".'
+                      one of: "pending", "loaded", "not-provided", "error".'
                     type: string
                 type: object
               status:

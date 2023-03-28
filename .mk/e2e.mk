@@ -36,6 +36,10 @@ install-srl-controller: ## Install srl-controller from current working dir
 	@echo "wait for controller manager to be ready"
 	kubectl -n srlinux-controller wait --for=condition=Available deployment.apps/srlinux-controller-controller-manager
 
+.PHONY: uninstall-srl-controller
+uninstall-srl-controller: ## Uninstall srl-controller from current working dir
+	kubectl delete -k config/default
+
 .PHONY: kind-load-image
 kind-load-image:  ## Load SR Linux container image to kind cluster
 	docker pull ${SRL_IMAGE}

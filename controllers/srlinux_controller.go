@@ -66,10 +66,6 @@ const (
 	entrypointVolMntSubPath = "kne-entrypoint.sh"
 	entrypointCfgMapName    = "srlinux-kne-entrypoint"
 
-	// default path to a startup config directory
-	// the default for config file name resides within kne.
-	defaultConfigPath = "/tmp/startup-config"
-
 	fileMode777 = 0o777
 
 	srlinuxPodAffinityWeight = 100
@@ -212,6 +208,9 @@ func (r *SrlinuxReconciler) handleSrlinuxPod(
 	// setting status of srlinux CR
 	srlinux.Status.Image = pod.Spec.Containers[0].Image
 	srlinux.Status.Status = string(pod.Status.Phase)
+	if len(pod.Status.ContainerStatuses) > 0 {
+		srlinux.Status.Ready = pod.Status.ContainerStatuses[0].Ready
+	}
 
 	return ctrl.Result{}, false, err
 }
