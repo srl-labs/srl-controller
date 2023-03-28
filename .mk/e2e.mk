@@ -39,7 +39,10 @@ install-srl-controller: ## Install srl-controller from current working dir
 .PHONY: kind-load-image
 kind-load-image:  ## Load SR Linux container image to kind cluster
 	docker pull ${SRL_IMAGE}
-	kind load docker-image ${SRL_IMAGE} --name srl-test
+	kind load docker-image ${SRL_IMAGE} --name ${KIND_CLUSTER_NAME}
+
+.PHONY: start-kne-cluster
+start-kne-cluster: install-kne kne-test-deployment-cfg-file deploy-kne kind-load-image ## Deploy KNE kind cluster but do not install any controllers
 
 .PHONY: prepare-e2e-env
 prepare-e2e-env: install-kne kne-test-deployment-cfg-file deploy-kne temp-docker-build install-srl-controller kind-load-image ## Install srl-controller from current working dir

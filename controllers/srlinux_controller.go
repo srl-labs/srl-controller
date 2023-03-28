@@ -33,7 +33,6 @@ package controllers
 import (
 	"context"
 	"embed"
-	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -120,8 +119,12 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return res, err
 	}
 
+	if err := r.handleSrlinuxStartupConfig(ctx, log, req, srlinux, found); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// updating Srlinux status
-	if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, srlinux, found); isReturn {
+	if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, req, srlinux, found); isReturn {
 		return res, err
 	}
 
@@ -206,6 +209,10 @@ func (r *SrlinuxReconciler) handleSrlinuxPod(
 		return ctrl.Result{}, true, err
 	}
 
+	// setting status of srlinux CR
+	srlinux.Status.Image = found.Spec.Containers[0].Image
+	srlinux.Status.Status = string(found.Status.Phase)
+
 	return ctrl.Result{}, false, err
 }
 
@@ -213,19 +220,17 @@ func (r *SrlinuxReconciler) handleSrlinuxPod(
 func (r *SrlinuxReconciler) updateSrlinuxStatus(
 	ctx context.Context,
 	log logr.Logger,
+	req ctrl.Request,
 	srlinux *srlinuxv1.Srlinux,
 	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
-	if !reflect.DeepEqual(found.Spec.Containers[0].Image, srlinux.Status.Image) {
-		log.Info("updating srlinux image status to", "image", found.Spec.Containers[0].Image)
-		srlinux.Status.Image = found.Spec.Containers[0].Image
+	log.Info("updating srlinux status", "srlinux-status", srlinux.Status)
 
-		err := r.Status().Update(ctx, srlinux)
-		if err != nil {
-			log.Error(err, "failed to update Srlinux status")
+	err := r.Status().Update(ctx, srlinux)
+	if err != nil {
+		log.Error(err, "failed to update Srlinux status")
 
-			return ctrl.Result{}, true, err
-		}
+		return ctrl.Result{}, true, err
 	}
 
 	return ctrl.Result{}, false, nil

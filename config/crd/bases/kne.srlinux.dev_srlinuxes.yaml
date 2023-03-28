@@ -16,12 +16,15 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.image
-      name: Image
-      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .status.image
+      name: Image
+      type: string
+    - jsonPath: .status.status
+      name: Status
+      type: string
     name: v1
     schema:
       openAPIV3Schema:
@@ -121,6 +124,18 @@ spec:
             properties:
               image:
                 description: Image used to run srlinux pod
+                type: string
+              startup-config:
+                description: StartupConfig contains the status of the startup-config.
+                properties:
+                  phase:
+                    description: 'Phase is the phase startup-config is in. Can be
+                      one of: "in-progress", "loaded", "not-provided", "error".'
+                    type: string
+                type: object
+              status:
+                description: 'Status is the status of the srlinux custom resource.
+                  Can be one of: "created", "running", "error".'
                 type: string
             type: object
         type: object
