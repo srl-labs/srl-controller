@@ -135,7 +135,7 @@ func loadStartupConfig(
 ) error {
 	defer d.Close()
 
-	cmds := createCmds(fileName, defaultConfigPath)
+	cmds := createStartupLoadCmds(fileName, defaultConfigPath)
 
 	r, err := d.SendConfigs(cmds)
 	if err != nil {
@@ -153,9 +153,9 @@ func loadStartupConfig(
 	return nil
 }
 
-// createCmds creates the commands to be sent to the device based on the extension of the
+// createStartupLoadCmds creates the commands to be sent to the device based on the extension of the
 // provided startup config.
-func createCmds(fileName, path string) []string {
+func createStartupLoadCmds(fileName, path string) []string {
 	ext := filepath.Ext(fileName)
 
 	var cmds []string
