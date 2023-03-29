@@ -70,6 +70,7 @@ func createStartupConfigVolumesAndMounts(s *srlinuxv1.Srlinux, pod *corev1.Pod, 
 	)
 }
 
+// handleSrlinuxStartupConfig handles the startup config provisioning.
 func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 	ctx context.Context,
 	log logr.Logger,
@@ -105,6 +106,7 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 	if driver == nil {
 		return
 	}
+	defer driver.Close()
 
 	log.Info("Loading provided startup configuration...", "filename",
 		srlinux.Spec.GetConfig().ConfigFile, "path", defaultConfigPath)
@@ -133,8 +135,6 @@ func loadStartupConfig(
 	fileName string,
 	log logr.Logger,
 ) error {
-	defer d.Close()
-
 	cmds := createStartupLoadCmds(fileName, defaultConfigPath)
 
 	r, err := d.SendConfigs(cmds)
