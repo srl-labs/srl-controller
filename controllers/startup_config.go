@@ -39,38 +39,35 @@ func handleStartupConfig(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger)
 		cfgPath = p
 	}
 
-	// only create startup config mounts if the config data was set in kne
-	if s.Spec.Config.ConfigDataPresent {
-		log.Info(
-			"Adding volume for startup config to pod spec",
-			"volume.name",
-			"startup-config-volume",
-			"mount.path",
-			cfgPath,
-		)
+	log.Info(
+		"Adding volume for startup config to pod spec",
+		"volume.name",
+		"startup-config-volume",
+		"mount.path",
+		cfgPath,
+	)
 
-		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-			Name: "startup-config-volume",
-			VolumeSource: corev1.VolumeSource{
-				// kne creates the configmap with the name <node-name>-config,
-				// so we use it as the source for the volume
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: fmt.Sprintf("%s-config", s.Name),
-					},
+	pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+		Name: "startup-config-volume",
+		VolumeSource: corev1.VolumeSource{
+			// kne creates the configmap with the name <node-name>-config,
+			// so we use it as the source for the volume
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: fmt.Sprintf("%s-config", s.Name),
 				},
 			},
-		})
+		},
+	})
 
-		pod.Spec.Containers[0].VolumeMounts = append(
-			pod.Spec.Containers[0].VolumeMounts,
-			corev1.VolumeMount{
-				Name:      "startup-config-volume",
-				MountPath: cfgPath,
-				ReadOnly:  false,
-			},
-		)
-	}
+	pod.Spec.Containers[0].VolumeMounts = append(
+		pod.Spec.Containers[0].VolumeMounts,
+		corev1.VolumeMount{
+			Name:      "startup-config-volume",
+			MountPath: cfgPath,
+			ReadOnly:  false,
+		},
+	)
 }
 
 func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
