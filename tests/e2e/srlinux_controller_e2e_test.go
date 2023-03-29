@@ -36,13 +36,11 @@ var srlTypeMeta = metav1.TypeMeta{
 	APIVersion: "kne.srlinux.dev/v1",
 }
 
-func createNamespace(t *testing.T, g *WithT, namespace *corev1.Namespace) *corev1.Namespace {
+func createNamespace(t *testing.T, g *WithT, namespace *corev1.Namespace) {
 	t.Helper()
 
 	t.Log("Creating the namespace")
 	g.Expect(k8sClient.Create(ctx, namespace)).Should(Succeed())
-
-	return namespace
 }
 
 func deleteNamespace(t *testing.T, _ *WithT, namespace *corev1.Namespace) {
@@ -53,7 +51,7 @@ func deleteNamespace(t *testing.T, _ *WithT, namespace *corev1.Namespace) {
 	_ = k8sClient.Delete(ctx, namespace)
 }
 
-func createConfigMapFromFile(t *testing.T, g *WithT, name, key, file string) *corev1.ConfigMap {
+func createConfigMapFromFile(t *testing.T, g *WithT, name, key, file string) {
 	t.Helper()
 
 	t.Logf("Creating the config map name %s, key %s", name, key)
@@ -75,8 +73,6 @@ func createConfigMapFromFile(t *testing.T, g *WithT, name, key, file string) *co
 	}
 
 	g.Expect(k8sClient.Create(ctx, configMap)).Should(Succeed())
-
-	return configMap
 }
 
 // TestSrlinuxReconciler_BareSrlinuxCR tests the reconciliation of the Srlinux custom resource
@@ -188,9 +184,9 @@ func TestSrlinuxReconciler_WithStartupConfig(t *testing.T) {
 	srl1Name := "srl1"
 	srl2Name := "srl2"
 
-	var srl1NsName = types.NamespacedName{Name: srl1Name, Namespace: SrlinuxNamespace}
-	var srl2NsName = types.NamespacedName{Name: srl2Name, Namespace: SrlinuxNamespace}
-	var srlNsNames = []types.NamespacedName{srl1NsName, srl2NsName}
+	srl1NsName := types.NamespacedName{Name: srl1Name, Namespace: SrlinuxNamespace}
+	srl2NsName := types.NamespacedName{Name: srl2Name, Namespace: SrlinuxNamespace}
+	srlNsNames := []types.NamespacedName{srl1NsName, srl2NsName}
 
 	setup := func(t *testing.T, g *WithT) {
 		t.Helper()
@@ -292,7 +288,9 @@ func TestSrlinuxReconciler_WithStartupConfig(t *testing.T) {
 
 		t.Log("Ensuring Srlinux config state is applied")
 		for _, srlNsName := range srlNsNames {
-			cmd := exec.Command("kubectl", "exec", "-n", SrlinuxNamespace, srlNsName.Name, "--", "sr_cli", "info", "from", "state", "interface", "mgmt0", "description")
+			//nolint:gosec
+			cmd := exec.Command("kubectl", "exec", "-n", SrlinuxNamespace,
+				srlNsName.Name, "--", "sr_cli", "info", "from", "state", "interface", "mgmt0", "description")
 
 			b, err := cmd.CombinedOutput()
 
