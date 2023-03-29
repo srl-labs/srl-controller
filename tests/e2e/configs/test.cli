@@ -1,0 +1,1 @@
+set / interface mgmt0 description "set from e2e test"

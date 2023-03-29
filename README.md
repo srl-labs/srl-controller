@@ -62,6 +62,12 @@ Once the kne+kind cluster is created and the `srl-controller` is installed onto 
 kne create examples/srlinux/2node-srl-with-config.pbtxt
 ```
 
+Note, that controller logs can be viewed live with:
+
+```bash
+kubectl logs --follow -n srlinux-controller $(kubectl get pods -A | grep srlinux-controller | awk '{print $2}')
+```
+
 This will deploy the SR Linux nodes and will create k8s services as per the topology configuration. The services will be exposed via MetalLB and can be queried as:
 
 ```text
@@ -106,16 +112,13 @@ When a request to create a `Srlinux` resource named `r1` in namespace `ns` comes
 
 1. Checks if the pods exist within a namespace `ns` with a name `r1`
 2. If the pod hasn't been found, then the controller first ensures that the necessary config maps exist in namespace `ns` and creates them otherwise.
-3. When config maps are sorted out, the controller schedules a pod with the name `r1` and requeue the request
-4. In a requeue run, the pod is now found and the controller updates the status of `Srlinux` resource with the image name that was used in the pod spec.
+3. When config maps are sorted out, the controller schedules a pod with the name `r1` and requeues the request.
+4. If a startup-config was provided, the controller loads this config using SSH into the pod, creates a named checkpoint "initial" and requeues the request.
+5. In a requeue run, the pod is now found and the controller updates the status of `Srlinux` resource.
 
 ### Deletion
 
 When a deletion happens on `Srlinux` resource, the reconcile loop does nothing.
-
-### API access
-
-This repo contains a clientset for API access to the `Srlinux` custom resource. Check [kne repo](https://github.com/openconfig/kne/blob/fc195a73035bcbf344791979ca3e067be47a249c/topo/node/srl/srl.go#L46) to see how this can be done.
 
 ## Building `srl-controller` container image
 
@@ -123,13 +126,13 @@ To build `srl-controller` container image, execute:
 
 ```bash
 # don't forget to set the correct tag
-# for example make docker-build IMG=ghcr.io/srl-labs/srl-controller:0.4.3
+# for example make docker-build IMG=ghcr.io/srl-labs/srl-controller:v0.6.0
 make docker-build IMG=ghcr.io/srl-labs/srl-controller:${tag}
 ```
 
 > build process will try to remove license headers for some manifests, discard those changes.
 
-Next update the controller version in [manager/kustomization.yaml](config/manager/kustomization.yaml) kustomization file to match the newly built version.
+Next, update the controller version in [manager/kustomization.yaml](config/manager/kustomization.yaml) kustomization file to match the newly built version.
 
 Finally, upload the container image to the registry:
 
@@ -139,6 +142,12 @@ docker push ghcr.io/srl-labs/srl-controller:${tag}
 # if this is the latest version, also push it with the `latest` tag
 docker tag ghcr.io/srl-labs/srl-controller:${tag} ghcr.io/srl-labs/srl-controller:latest
 docker push ghcr.io/srl-labs/srl-controller:latest
+```
+
+Note, update the SR Linux manifest in the [KNE repo](https://github.com/openconfig/kne/) to use the new version of the controller. To generate the manifest, run:
+
+```bash
+kustomize build config/default
 ```
 
 ## Developers guide

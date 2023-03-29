@@ -36,14 +36,21 @@ install-srl-controller: ## Install srl-controller from current working dir
 	@echo "wait for controller manager to be ready"
 	kubectl -n srlinux-controller wait --for=condition=Available deployment.apps/srlinux-controller-controller-manager
 
+.PHONY: uninstall-srl-controller
+uninstall-srl-controller: ## Uninstall srl-controller from current working dir
+	kubectl delete -k config/default
+
 .PHONY: kind-load-image
 kind-load-image:  ## Load SR Linux container image to kind cluster
 	docker pull ${SRL_IMAGE}
-	kind load docker-image ${SRL_IMAGE} --name srl-test
+	kind load docker-image ${SRL_IMAGE} --name ${KIND_CLUSTER_NAME}
+
+.PHONY: start-kne-cluster
+start-kne-cluster: install-kne kne-test-deployment-cfg-file deploy-kne kind-load-image ## Deploy KNE kind cluster but do not install any controllers
 
 .PHONY: prepare-e2e-env
 prepare-e2e-env: install-kne kne-test-deployment-cfg-file deploy-kne temp-docker-build install-srl-controller kind-load-image ## Install srl-controller from current working dir
 
 .PHONY: test-e2e
-test-e2e: ## Test e2e using kind
-	go test -v github.com/srl-labs/srl-controller/tests/e2e
+test-e2e: ## Test e2e using kind and a provided test name
+	go test -timeout 5m -v github.com/srl-labs/srl-controller/tests/e2e -run ${E2E_TEST_NAME}

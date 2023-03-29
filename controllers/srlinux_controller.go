@@ -33,7 +33,6 @@ package controllers
 import (
 	"context"
 	"embed"
-	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -66,10 +65,6 @@ const (
 	// https://stackoverflow.com/questions/33415913/whats-the-best-way-to-share-mount-one-file-into-a-pod
 	entrypointVolMntSubPath = "kne-entrypoint.sh"
 	entrypointCfgMapName    = "srlinux-kne-entrypoint"
-
-	// default path to a startup config directory
-	// the default for config file name resides within kne.
-	defaultConfigPath = "/tmp/startup-config"
 
 	fileMode777 = 0o777
 
@@ -104,25 +99,53 @@ type SrlinuxReconciler struct {
 func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
+	// track if update is required
+	update := false
+
 	srlinux := &srlinuxv1.Srlinux{}
 
 	// isReturn is used to indicate if the called function should return or continue reconciliation.
 	// This is needed since empty ctlr.Result{} can't be used to identify if we should return from the reconciliation
 	// or continue with the process when using called functions.
-	if res, isReturn, err := r.checkSrlinuxCR(ctx, log, req, srlinux); isReturn {
+	if res, isReturn, err := r.handleSrlinuxCR(ctx, log, req, srlinux); isReturn {
 		return res, err
 	}
 
 	// Check if the srlinux pod already exists, if not create a new one
-	found := &corev1.Pod{}
+	pod := &corev1.Pod{}
 
-	if res, isReturn, err := r.checkSrlinuxPod(ctx, log, srlinux, found); isReturn {
+	if res, isReturn, err := r.handleSrlinuxPod(ctx, log, &update, srlinux, pod); isReturn {
 		return res, err
 	}
 
+	// Update the srlinux status after pod creation/handling
+	if update {
+		if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, req, srlinux); isReturn {
+			return res, err
+		}
+	}
+
+	// refresh SR Linux CR
+	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// SR Linux becomes ready when its Pod readiness probe succeeds.
+	// The readiness probe checks if mgmt server is ready to accept config
+	if !srlinux.Status.Ready {
+		log.Info("SR Linux management server is not yet ready, requeing...")
+
+		// wait 2 sec before requeuing as constant polling is not needed
+		return ctrl.Result{}, nil
+	}
+
+	r.handleSrlinuxStartupConfig(ctx, log, &update, srlinux)
+
 	// updating Srlinux status
-	if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, srlinux, found); isReturn {
-		return res, err
+	if update {
+		if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, req, srlinux); isReturn {
+			return res, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -136,7 +159,9 @@ func (r *SrlinuxReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *SrlinuxReconciler) checkSrlinuxCR(
+// handleSrlinuxCR handles SR Linux custom resource. It fetches the CR based on the namespaced name
+// and handles cases when the object appears to be deleted.
+func (r *SrlinuxReconciler) handleSrlinuxCR(
 	ctx context.Context,
 	log logr.Logger,
 	req ctrl.Request,
@@ -162,13 +187,15 @@ func (r *SrlinuxReconciler) checkSrlinuxCR(
 	return ctrl.Result{}, false, nil
 }
 
-func (r *SrlinuxReconciler) checkSrlinuxPod(
+// handleSrlinuxPod handles Pod lifecycle for Srlinux CR.
+func (r *SrlinuxReconciler) handleSrlinuxPod(
 	ctx context.Context,
 	log logr.Logger,
+	update *bool,
 	srlinux *srlinuxv1.Srlinux,
-	found *corev1.Pod,
+	pod *corev1.Pod,
 ) (ctrl.Result, bool, error) {
-	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, found)
+	err := r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, pod)
 	// if pod was not found, create a new one
 	if err != nil && errors.IsNotFound(err) {
 		err = createConfigMaps(ctx, r, srlinux, log)
@@ -203,25 +230,41 @@ func (r *SrlinuxReconciler) checkSrlinuxPod(
 		return ctrl.Result{}, true, err
 	}
 
+	// setting status of srlinux CR
+	if srlinux.Status.Image != pod.Spec.Containers[0].Image {
+		*update = true
+		srlinux.Status.Image = pod.Spec.Containers[0].Image
+	}
+
+	if srlinux.Status.Status != string(pod.Status.Phase) {
+		*update = true
+		srlinux.Status.Status = string(pod.Status.Phase)
+	}
+
+	if len(pod.Status.ContainerStatuses) > 0 {
+		if srlinux.Status.Ready != pod.Status.ContainerStatuses[0].Ready {
+			*update = true
+			srlinux.Status.Ready = pod.Status.ContainerStatuses[0].Ready
+		}
+	}
+
 	return ctrl.Result{}, false, err
 }
 
+// updateSrlinuxStatus updates Srlinux status.
 func (r *SrlinuxReconciler) updateSrlinuxStatus(
 	ctx context.Context,
 	log logr.Logger,
+	_ ctrl.Request,
 	srlinux *srlinuxv1.Srlinux,
-	found *corev1.Pod,
 ) (ctrl.Result, bool, error) {
-	if !reflect.DeepEqual(found.Spec.Containers[0].Image, srlinux.Status.Image) {
-		log.Info("updating srlinux image status to", "image", found.Spec.Containers[0].Image)
-		srlinux.Status.Image = found.Spec.Containers[0].Image
+	log.Info("updating srlinux status", "srlinux-status", srlinux.Status)
 
-		err := r.Status().Update(ctx, srlinux)
-		if err != nil {
-			log.Error(err, "failed to update Srlinux status")
+	err := r.Status().Update(ctx, srlinux)
+	if err != nil {
+		log.Error(err, "failed to update Srlinux status")
 
-			return ctrl.Result{}, true, err
-		}
+		return ctrl.Result{}, true, err
 	}
 
 	return ctrl.Result{}, false, nil

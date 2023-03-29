@@ -56,16 +56,31 @@ type SrlinuxSpec struct {
 
 // SrlinuxStatus defines the observed state of Srlinux.
 type SrlinuxStatus struct {
+	// Status is the status of the srlinux custom resource.
+	// Can be one of: "created", "running", "error".
+	Status string `json:"status,omitempty"`
 	// Image used to run srlinux pod
 	Image string `json:"image,omitempty"`
+	// StartupConfig contains the status of the startup-config.
+	StartupConfig StartupConfigStatus `json:"startup-config,omitempty"`
+	// Ready is true if the srlinux NOS is ready to receive config.
+	// This is when management server is running and initial commit is processed.
+	Ready bool `json:"ready,omitempty"`
+}
+
+type StartupConfigStatus struct {
+	// Phase is the phase startup-config is in. Can be one of: "pending", "loaded", "not-provided", "failed".
+	Phase string `json:"phase,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
 // Srlinux is the Schema for the srlinuxes API.
-// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
+// +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready"
 type Srlinux struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

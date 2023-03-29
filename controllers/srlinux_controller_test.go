@@ -52,7 +52,7 @@ func TestSrlinuxReconcile(t *testing.T) {
 	testsCases := []struct {
 		descr      string
 		clientObjs []runtime.Object
-		// testFn is a test function that is called for a particukar test case
+		// testFn is a test function that is called for a particular test case
 		testFn func(t *testing.T, c client.Client, reconciler SrlinuxReconciler, g *GomegaWithT)
 	}{
 		{

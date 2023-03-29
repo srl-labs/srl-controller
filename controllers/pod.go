@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	knenode "github.com/openconfig/kne/topo/node"
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -24,6 +23,10 @@ const (
 	licenseFileName               = "license.key"
 	licenseMntPath                = "/opt/srlinux/etc/license.key"
 	licenseMntSubPath             = "license.key"
+	readinessFile                 = "/etc/opt/srlinux/devices/app_ephemeral.mgmt_server.ready_for_config"
+	readinessInitialDelay         = 10
+	readinessPeriodSeconds        = 5
+	readinessFailureThreshold     = 10
 )
 
 // podForSrlinux returns a srlinux Pod object.
@@ -52,7 +55,9 @@ func (r *SrlinuxReconciler) podForSrlinux(
 	}
 
 	// handle startup config volume mounts if the startup config was defined
-	handleStartupConfig(s, pod, log)
+	if s.Spec.Config.ConfigDataPresent {
+		createStartupConfigVolumesAndMounts(s, pod, log)
+	}
 
 	//nolint:godox
 	// TODO: handle the error
@@ -98,6 +103,19 @@ func createContainers(s *srlinuxv1.Srlinux) []corev1.Container {
 			RunAsUser:  pointer.Int64(0),
 		},
 		VolumeMounts: createVolumeMounts(s),
+		ReadinessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"cat",
+						readinessFile,
+					},
+				},
+			},
+			InitialDelaySeconds: readinessInitialDelay,
+			PeriodSeconds:       readinessPeriodSeconds,
+			FailureThreshold:    readinessFailureThreshold,
+		},
 	}}
 }
 
@@ -169,50 +187,6 @@ func createVolumes(s *srlinuxv1.Srlinux) []corev1.Volume {
 	}
 
 	return vols
-}
-
-// handleStartupConfig creates volume mounts and volumes for srlinux pod
-// if the (startup) config file was provided in the spec.
-// Volume mounts happens in the /tmp/startup-config directory and not in the /etc/opt/srlinux
-// because we need to support renaming operations on config.json, and bind mount paths are not allowing this.
-// Hence the temp location, from which the config file is then copied to /etc/opt/srlinux by the kne-entrypoint.sh.
-func handleStartupConfig(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger) {
-	// initialize config path and config file variables
-	cfgPath := defaultConfigPath
-	if p := s.Spec.GetConfig().ConfigPath; p != "" {
-		cfgPath = p
-	}
-
-	// only create startup config mounts if the config data was set in kne
-	if s.Spec.Config.ConfigDataPresent {
-		log.Info(
-			"Adding volume for startup config to pod spec",
-			"volume.name",
-			"startup-config-volume",
-			"mount.path",
-			cfgPath,
-		)
-
-		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
-			Name: "startup-config-volume",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: fmt.Sprintf("%s-config", s.Name),
-					},
-				},
-			},
-		})
-
-		pod.Spec.Containers[0].VolumeMounts = append(
-			pod.Spec.Containers[0].VolumeMounts,
-			corev1.VolumeMount{
-				Name:      "startup-config-volume",
-				MountPath: cfgPath,
-				ReadOnly:  false,
-			},
-		)
-	}
 }
 
 func createVolumeMounts(s *srlinuxv1.Srlinux) []corev1.VolumeMount {
