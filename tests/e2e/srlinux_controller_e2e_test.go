@@ -153,6 +153,15 @@ func TestSrlinuxReconciler_BareSrlinuxCR(t *testing.T) {
 			return found.Status.Phase == corev1.PodRunning
 		}, srlinuxMaxStartupTime, time.Second).Should(BeTrue())
 
+		t.Log("Ensuring the Srlinux CR Ready status reached true")
+
+		g.Eventually(func() bool {
+			srl := &srlinuxv1.Srlinux{}
+			g.Expect(k8sClient.Get(ctx, namespacedName, srl)).Should(Succeed())
+
+			return srl.Status.Ready == true
+		}, srlinuxMaxReadyTime).Should(BeTrue())
+
 		t.Log("Deleting the custom resource for the Kind Srlinux")
 		g.Expect(k8sClient.Delete(ctx, srlinux)).Should(Succeed())
 
