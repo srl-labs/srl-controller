@@ -21,11 +21,13 @@ import (
 )
 
 const (
-	SrlinuxNamespace      = "test"
-	SrlinuxName           = "test-srlinux"
-	testImageName         = "ghcr.io/nokia/srlinux:latest"
-	defaultImageName      = "ghcr.io/nokia/srlinux:latest"
-	srlinuxMaxReadyTime   = 30 * time.Second
+	SrlinuxNamespace = "test"
+	SrlinuxName      = "test-srlinux"
+	testImageName    = "ghcr.io/nokia/srlinux:latest"
+	defaultImageName = "ghcr.io/nokia/srlinux:latest"
+	// time to wait for the Srlinux pod to be ready.
+	// 60s looks like a lot, but this is to ensure that slow CI systems have enough time
+	srlinuxMaxReadyTime   = 60 * time.Second
 	srlinuxMaxStartupTime = 3 * time.Minute
 )
 
@@ -277,7 +279,7 @@ func TestSrlinuxReconciler_WithStartupConfig(t *testing.T) {
 
 		t.Log("Ensuring Srlinux config state is loaded")
 		for _, srlNsName := range srlNsNames {
-			// reuse max ready time, as 30 seconds is enought after readiness to apply config
+			// reuse max ready time, which should be more than enought to apply config
 			g.Eventually(func() bool {
 				srl := &srlinuxv1.Srlinux{}
 				g.Expect(k8sClient.Get(ctx, srlNsName, srl)).Should(Succeed())
