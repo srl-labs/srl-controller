@@ -27,12 +27,12 @@ const (
 	podIPReadyInterval = 2 * time.Second
 )
 
-// handleStartupConfig creates volume mounts and volumes for srlinux pod
+// createStartupConfigVolumesAndMounts creates volume mounts and volumes for srlinux pod
 // if the (startup) config file was provided in the spec.
 // Volume mounts happens in the /tmp/startup-config directory and not in the /etc/opt/srlinux
 // because we need to support renaming operations on config.json, and bind mount paths are not allowing this.
 // Hence the temp location, from which the config file is then copied to /etc/opt/srlinux by the kne-entrypoint.sh.
-func handleStartupConfig(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger) {
+func createStartupConfigVolumesAndMounts(s *srlinuxv1.Srlinux, pod *corev1.Pod, log logr.Logger) {
 	// initialize config path and config file variables
 	cfgPath := defaultConfigPath
 	if p := s.Spec.GetConfig().ConfigPath; p != "" {

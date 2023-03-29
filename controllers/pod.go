@@ -56,7 +56,7 @@ func (r *SrlinuxReconciler) podForSrlinux(
 
 	// handle startup config volume mounts if the startup config was defined
 	if s.Spec.Config.ConfigDataPresent {
-		handleStartupConfig(s, pod, log)
+		createStartupConfigVolumesAndMounts(s, pod, log)
 	}
 
 	//nolint:godox
