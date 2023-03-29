@@ -187,7 +187,8 @@ func createInitCheckpoint(
 }
 
 // createStartupLoadCmds creates the commands to be sent to the device based on the extension of the
-// provided startup config.
+// provided startup config. It supports CLI- and JSON-styled configs.
+// After loading the configuration it saves it to the startup config.
 func createStartupLoadCmds(fileName, path string) []string {
 	ext := filepath.Ext(fileName)
 
@@ -200,7 +201,7 @@ func createStartupLoadCmds(fileName, path string) []string {
 		cmds = append(cmds, fmt.Sprintf("source %s/%s", path, fileName))
 	}
 
-	cmds = append(cmds, "commit now")
+	cmds = append(cmds, "commit save")
 
 	return cmds
 }
