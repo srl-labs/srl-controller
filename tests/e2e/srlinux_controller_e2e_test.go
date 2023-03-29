@@ -183,131 +183,133 @@ func TestSrlinuxReconciler_BareSrlinuxCR(t *testing.T) {
 	})
 }
 
-// TestSrlinuxReconciler_WithStartupConfig tests the reconciliation of the Srlinux custom resources
-// which are provided with the startup config in JSON and CLI formats.
-func TestSrlinuxReconciler_WithStartupConfig(t *testing.T) {
+// TestSrlinuxReconciler_WithJSONStartupConfig tests the reconciliation of the Srlinux custom resource
+// provided with the JSON-styled startup config.
+func TestSrlinuxReconciler_WithJSONStartupConfig(t *testing.T) {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: SrlinuxNamespace,
 		},
 	}
 
-	srl1Name := "srl1"
-	srl2Name := "srl2"
+	srlName := "srl1"
 
-	srl1NsName := types.NamespacedName{Name: srl1Name, Namespace: SrlinuxNamespace}
-	srl2NsName := types.NamespacedName{Name: srl2Name, Namespace: SrlinuxNamespace}
-	srlNsNames := []types.NamespacedName{srl1NsName, srl2NsName}
+	srlNsName := types.NamespacedName{Name: srlName, Namespace: SrlinuxNamespace}
 
 	setup := func(t *testing.T, g *WithT) {
 		t.Helper()
 
 		createNamespace(t, g, namespace)
-		createConfigMapFromFile(t, g, srl1Name+"-config", "config.json", "./configs/test.json")
-		createConfigMapFromFile(t, g, srl2Name+"-config", "config.cli", "./configs/test.cli")
+		createConfigMapFromFile(t, g, srlName+"-config", "config.json", "./configs/test.json")
 	}
 
 	t.Run("Should reconcile a Srlinux custom resource", func(t *testing.T) {
-		g := NewWithT(t)
-
-		setup(t, g)
-		// defer deleteNamespace(t, g, namespace)
-
-		t.Log("Checking that Srlinux resources do not exist in the cluster")
-		srl1 := &srlinuxv1.Srlinux{}
-		srl2 := &srlinuxv1.Srlinux{}
-
-		err := k8sClient.Get(ctx, srl1NsName, srl1)
-		g.Expect(errors.IsNotFound(err)).To(BeTrue())
-
-		err = k8sClient.Get(ctx, srl2NsName, srl2)
-		g.Expect(errors.IsNotFound(err)).To(BeTrue())
-
-		t.Log("Creating the custom resources with startup config present")
-		srl1 = &srlinuxv1.Srlinux{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      srl1Name,
-				Namespace: SrlinuxNamespace,
-			},
-			TypeMeta: srlTypeMeta,
-			Spec: srlinuxv1.SrlinuxSpec{
-				Config: &srlinuxv1.NodeConfig{
-					Image:             testImageName,
-					ConfigDataPresent: true,
-					ConfigFile:        "config.json",
-				},
-			},
-		}
-		g.Expect(k8sClient.Create(ctx, srl1)).Should(Succeed())
-
-		srl2 = &srlinuxv1.Srlinux{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      srl2Name,
-				Namespace: SrlinuxNamespace,
-			},
-			TypeMeta: srlTypeMeta,
-			Spec: srlinuxv1.SrlinuxSpec{
-				Config: &srlinuxv1.NodeConfig{
-					Image:             testImageName,
-					ConfigDataPresent: true,
-					ConfigFile:        "config.cli",
-				},
-			},
-		}
-		g.Expect(k8sClient.Create(ctx, srl2)).Should(Succeed())
-
-		t.Log("Checking if the custom resources were successfully created")
-		for _, srlNsName := range srlNsNames {
-			g.Eventually(func() error {
-				found := &srlinuxv1.Srlinux{}
-
-				return k8sClient.Get(ctx, srlNsName, found)
-			}).Should(Succeed())
-		}
-
-		// Reconcile is triggered by the creation of the custom resource
-
-		t.Log("Checking if Srlinux Pods were successfully created in the reconciliation")
-		for _, srlNsName := range srlNsNames {
-			g.Eventually(func() error {
-				found := &corev1.Pod{}
-
-				return k8sClient.Get(ctx, srlNsName, found)
-			}).Should(Succeed())
-		}
-
-		t.Log("Ensuring the Srlinux CR Ready status reached true")
-		for _, srlNsName := range srlNsNames {
-			g.Eventually(func() bool {
-				srl := &srlinuxv1.Srlinux{}
-				g.Expect(k8sClient.Get(ctx, srlNsName, srl)).Should(Succeed())
-
-				return srl.Status.Ready == true
-			}, srlinuxMaxReadyTime).Should(BeTrue())
-		}
-
-		t.Log("Ensuring Srlinux config state is loaded")
-		for _, srlNsName := range srlNsNames {
-			// reuse max ready time, which should be more than enought to apply config
-			g.Eventually(func() bool {
-				srl := &srlinuxv1.Srlinux{}
-				g.Expect(k8sClient.Get(ctx, srlNsName, srl)).Should(Succeed())
-
-				return srl.Status.StartupConfig.Phase == "loaded"
-			}, srlinuxMaxReadyTime).Should(BeTrue())
-		}
-
-		t.Log("Ensuring Srlinux config state is applied")
-		for _, srlNsName := range srlNsNames {
-			//nolint:gosec
-			cmd := exec.Command("kubectl", "exec", "-n", SrlinuxNamespace,
-				srlNsName.Name, "--", "sr_cli", "info", "from", "state", "interface", "mgmt0", "description")
-
-			b, err := cmd.CombinedOutput()
-
-			g.Expect(err).ShouldNot(HaveOccurred())
-
-			g.Expect(string(b)).Should(ContainSubstring("set from e2e test"))
-		}
+		testReconciliationWithConfig(t, setup, srlNsName, "config.json")
 	})
+}
+
+// TestSrlinuxReconciler_WithJSONStartupConfig tests the reconciliation of the Srlinux custom resource
+// provided with the CLI-styled startup config.
+func TestSrlinuxReconciler_WithCLIStartupConfig(t *testing.T) {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: SrlinuxNamespace,
+		},
+	}
+
+	srlName := "srl1"
+
+	srlNsName := types.NamespacedName{Name: srlName, Namespace: SrlinuxNamespace}
+
+	setup := func(t *testing.T, g *WithT) {
+		t.Helper()
+
+		createNamespace(t, g, namespace)
+		createConfigMapFromFile(t, g, srlName+"-config", "config.cli", "./configs/test.cli")
+	}
+
+	t.Run("Should reconcile a Srlinux custom resource", func(t *testing.T) {
+		testReconciliationWithConfig(t, setup, srlNsName, "config.cli")
+	})
+}
+
+func testReconciliationWithConfig(
+	t *testing.T,
+	setup func(t *testing.T, g *WithT),
+	srlNsName types.NamespacedName,
+	configFile string,
+) {
+	g := NewWithT(t)
+
+	setup(t, g)
+
+	t.Log("Checking that Srlinux resources do not exist in the cluster")
+
+	srl := &srlinuxv1.Srlinux{}
+
+	err := k8sClient.Get(ctx, srlNsName, srl)
+	g.Expect(errors.IsNotFound(err)).To(BeTrue())
+
+	t.Log("Creating the custom resources with startup config present")
+
+	srl = &srlinuxv1.Srlinux{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      srlNsName.Name,
+			Namespace: SrlinuxNamespace,
+		},
+		TypeMeta: srlTypeMeta,
+		Spec: srlinuxv1.SrlinuxSpec{
+			Config: &srlinuxv1.NodeConfig{
+				Image:             testImageName,
+				ConfigDataPresent: true,
+				ConfigFile:        configFile,
+			},
+		},
+	}
+	g.Expect(k8sClient.Create(ctx, srl)).Should(Succeed())
+
+	t.Log("Checking if the custom resources were successfully created")
+
+	g.Eventually(func() error {
+		found := &srlinuxv1.Srlinux{}
+
+		return k8sClient.Get(ctx, srlNsName, found)
+	}).Should(Succeed())
+
+	// Reconcile is triggered by the creation of the custom resource
+
+	t.Log("Checking if Srlinux Pods were successfully created in the reconciliation")
+	g.Eventually(func() error {
+		found := &corev1.Pod{}
+
+		return k8sClient.Get(ctx, srlNsName, found)
+	}).Should(Succeed())
+
+	t.Log("Ensuring the Srlinux CR Ready status reached true")
+	g.Eventually(func() bool {
+		srl := &srlinuxv1.Srlinux{}
+		g.Expect(k8sClient.Get(ctx, srlNsName, srl)).Should(Succeed())
+
+		return srl.Status.Ready == true
+	}, srlinuxMaxReadyTime).Should(BeTrue())
+
+	t.Log("Ensuring Srlinux config state is loaded")
+	// reuse max ready time, which should be more than enought to apply config
+	g.Eventually(func() bool {
+		srl := &srlinuxv1.Srlinux{}
+		g.Expect(k8sClient.Get(ctx, srlNsName, srl)).Should(Succeed())
+
+		return srl.Status.StartupConfig.Phase == "loaded"
+	}, srlinuxMaxReadyTime).Should(BeTrue())
+
+	t.Log("Ensuring Srlinux config state is applied")
+	//nolint:gosec
+	cmd := exec.Command("kubectl", "exec", "-n", SrlinuxNamespace,
+		srlNsName.Name, "--", "sr_cli", "info", "from", "state", "interface", "mgmt0", "description")
+
+	b, err := cmd.CombinedOutput()
+
+	g.Expect(err).ShouldNot(HaveOccurred())
+
+	g.Expect(string(b)).Should(ContainSubstring("set from e2e test"))
 }
