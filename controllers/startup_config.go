@@ -190,11 +190,13 @@ func (r *SrlinuxReconciler) waitPodIPReady(
 		select {
 		case <-timeout:
 			log.Error(fmt.Errorf("timed out waiting for pod IP"), "pod IP not assigned") //nolint:goerr113
+
 			return ""
 		case <-tick.C:
 			ip := r.getPodIP(ctx, srlinux)
 			if ip != "" {
 				log.Info("pod IP assigned, provisioning configuration", "pod-ip", ip)
+
 				return ip
 			}
 		}
@@ -204,7 +206,7 @@ func (r *SrlinuxReconciler) waitPodIPReady(
 // getPodIP returns the pod IP.
 func (r *SrlinuxReconciler) getPodIP(ctx context.Context, srlinux *srlinuxv1.Srlinux) string {
 	pod := &corev1.Pod{}
-	r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, pod)
+	_ = r.Get(ctx, types.NamespacedName{Name: srlinux.Name, Namespace: srlinux.Namespace}, pod)
 
 	return pod.Status.PodIP
 }
@@ -223,7 +225,8 @@ func (r *SrlinuxReconciler) waitNetworkReady(
 	for {
 		select {
 		case <-timeout:
-			log.Error(fmt.Errorf("timed out waiting network readiness"), "Network not ready")
+			log.Error(fmt.Errorf("timed out waiting network readiness"), "Network not ready") //nolint:goerr113
+
 			return nil
 		case <-tick.C:
 			log.Info("waiting for network readiness...")
@@ -231,6 +234,7 @@ func (r *SrlinuxReconciler) waitNetworkReady(
 			d := r.getNetworkDriver(ctx, log, podIP)
 			if d != nil {
 				log.Info("network ready")
+
 				return d
 			}
 		}
