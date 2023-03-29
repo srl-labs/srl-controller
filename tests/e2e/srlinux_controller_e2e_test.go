@@ -26,7 +26,7 @@ const (
 	testImageName    = "ghcr.io/nokia/srlinux:latest"
 	defaultImageName = "ghcr.io/nokia/srlinux:latest"
 	// time to wait for the Srlinux pod to be ready.
-	// 60s looks like a lot, but this is to ensure that slow CI systems have enough time
+	// 60s looks like a lot, but this is to ensure that slow CI systems have enough time.
 	srlinuxMaxReadyTime   = 60 * time.Second
 	srlinuxMaxStartupTime = 3 * time.Minute
 )

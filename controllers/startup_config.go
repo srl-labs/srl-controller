@@ -123,6 +123,13 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 
 	log.Info("Loaded provided startup configuration...")
 
+	err = createInitCheckpoint(ctx, driver, log)
+	if err != nil {
+		log.Error(err, "failed to create initial checkpoint after loading startup config")
+
+		return
+	}
+
 	srlinux.Status.StartupConfig.Phase = "loaded"
 	*update = true
 }
@@ -146,6 +153,32 @@ func loadStartupConfig(
 
 	if r.Failed != nil {
 		log.Error(r.Failed, "applying commands failed")
+
+		return err
+	}
+
+	return nil
+}
+
+// createInitCheckpoint creates a checkpoint named "initial".
+// This checkpoint is used to reset the device to the initial state, which is the state after
+// applying the startup config.
+func createInitCheckpoint(
+	_ context.Context,
+	d *network.Driver,
+	log logr.Logger,
+) error {
+	cmd := "/tools system configuration generate-checkpoint name initial"
+
+	r, err := d.SendCommand(cmd)
+	if err != nil {
+		log.Error(err, "failed to send command")
+
+		return err
+	}
+
+	if r.Failed != nil {
+		log.Error(r.Failed, "applying command failed")
 
 		return err
 	}

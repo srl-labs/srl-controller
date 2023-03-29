@@ -125,6 +125,11 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	// refresh SR Linux CR
+	if err := r.Get(ctx, req.NamespacedName, srlinux); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// SR Linux becomes ready when its Pod readiness probe succeeds.
 	// The readiness probe checks if mgmt server is ready to accept config
 	if !srlinux.Status.Ready {
