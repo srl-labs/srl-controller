@@ -161,7 +161,7 @@ func loadStartupConfig(
 func createCmds(fileName, path string) []string {
 	ext := filepath.Ext(fileName)
 
-	cmds := []string{}
+	var cmds []string
 
 	switch ext {
 	case ".json":
@@ -242,7 +242,7 @@ func (r *SrlinuxReconciler) waitNetworkReady(
 }
 
 // getNetworkDriver returns the opened network driver for a given pod IP.
-func (r *SrlinuxReconciler) getNetworkDriver(_ context.Context, log logr.Logger, podIP string) *network.Driver {
+func (*SrlinuxReconciler) getNetworkDriver(_ context.Context, log logr.Logger, podIP string) *network.Driver {
 	p, err := platform.NewPlatform(
 		"nokia_srl",
 		podIP,
