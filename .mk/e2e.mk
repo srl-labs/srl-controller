@@ -52,5 +52,5 @@ start-kne-cluster: install-kne kne-test-deployment-cfg-file deploy-kne kind-load
 prepare-e2e-env: install-kne kne-test-deployment-cfg-file deploy-kne temp-docker-build install-srl-controller kind-load-image ## Install srl-controller from current working dir
 
 .PHONY: test-e2e
-test-e2e: ## Test e2e using kind
-	go test -v github.com/srl-labs/srl-controller/tests/e2e
+test-e2e: ## Test e2e using kind and a provided test name
+	go test -timeout 5m -v github.com/srl-labs/srl-controller/tests/e2e -run ${E2E_TEST_NAME}
