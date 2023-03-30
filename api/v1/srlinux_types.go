@@ -81,6 +81,7 @@ type StartupConfigStatus struct {
 // +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".status.image"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status"
 // +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready"
+// +kubebuilder:printcolumn:name="Config",type="string",JSONPath=".status.startup-config.phase"
 type Srlinux struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

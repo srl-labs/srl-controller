@@ -154,7 +154,7 @@ func loadStartupConfig(
 	if r.Failed != nil {
 		log.Error(r.Failed, "applying commands failed")
 
-		return err
+		return r.Failed
 	}
 
 	return nil

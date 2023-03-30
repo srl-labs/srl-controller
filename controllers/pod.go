@@ -8,9 +8,9 @@ import (
 	"context"
 	"fmt"
 
-	knenode "github.com/openconfig/kne/topo/node"
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -95,8 +95,8 @@ func createContainers(s *srlinuxv1.Srlinux) []corev1.Container {
 		Image:           s.Spec.GetImage(),
 		Command:         s.Spec.Config.GetCommand(),
 		Args:            s.Spec.Config.GetArgs(),
-		Env:             knenode.ToEnvVar(s.Spec.Config.Env),
-		Resources:       knenode.ToResourceRequirements(s.Spec.GetConstraints()),
+		Env:             toEnvVar(s.Spec.Config.Env),
+		Resources:       toResourceRequirements(s.Spec.GetConstraints()),
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
 			Privileged: pointer.Bool(true),
@@ -236,4 +236,33 @@ func createLicenseVolumeMount() corev1.VolumeMount {
 		MountPath: licenseMntPath,
 		SubPath:   licenseMntSubPath,
 	}
+}
+
+func toEnvVar(kv map[string]string) []corev1.EnvVar {
+	envVar := make([]corev1.EnvVar, 0, len(kv))
+
+	for k, v := range kv {
+		envVar = append(envVar, corev1.EnvVar{
+			Name:  k,
+			Value: v,
+		})
+	}
+
+	return envVar
+}
+
+func toResourceRequirements(kv map[string]string) corev1.ResourceRequirements {
+	r := corev1.ResourceRequirements{
+		Requests: map[corev1.ResourceName]resource.Quantity{},
+	}
+
+	if v, ok := kv["cpu"]; ok {
+		r.Requests["cpu"] = resource.MustParse(v)
+	}
+
+	if v, ok := kv["memory"]; ok {
+		r.Requests["memory"] = resource.MustParse(v)
+	}
+
+	return r
 }
