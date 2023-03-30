@@ -239,13 +239,15 @@ func createLicenseVolumeMount() corev1.VolumeMount {
 }
 
 func toEnvVar(kv map[string]string) []corev1.EnvVar {
-	var envVar []corev1.EnvVar
+	envVar := make([]corev1.EnvVar, 0, len(kv))
+
 	for k, v := range kv {
 		envVar = append(envVar, corev1.EnvVar{
 			Name:  k,
 			Value: v,
 		})
 	}
+
 	return envVar
 }
 
@@ -253,11 +255,14 @@ func toResourceRequirements(kv map[string]string) corev1.ResourceRequirements {
 	r := corev1.ResourceRequirements{
 		Requests: map[corev1.ResourceName]resource.Quantity{},
 	}
+
 	if v, ok := kv["cpu"]; ok {
 		r.Requests["cpu"] = resource.MustParse(v)
 	}
+
 	if v, ok := kv["memory"]; ok {
 		r.Requests["memory"] = resource.MustParse(v)
 	}
+
 	return r
 }
