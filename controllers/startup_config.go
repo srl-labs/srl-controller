@@ -72,7 +72,7 @@ func createStartupConfigVolumesAndMounts(s *srlinuxv1.Srlinux, pod *corev1.Pod, 
 }
 
 // handleSrlinuxStartupConfig handles the startup config provisioning.
-func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
+func (r *SrlinuxReconciler) handleSrlinuxStartupConfig( //nolint:funlen
 	ctx context.Context,
 	log logr.Logger,
 	update *bool,
@@ -178,6 +178,7 @@ func createInitCheckpoint(
 	// resulting in several attempts to load configuration and create checkpoint
 	// so we need to check if the checkpoint already exists and bail out if so
 	checkCheckpointCmd := "info from state system configuration checkpoint *"
+
 	r, err := d.SendCommand(checkCheckpointCmd)
 	if err != nil {
 		log.Error(err, "failed to send command")
