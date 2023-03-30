@@ -68,7 +68,25 @@ Note, that controller logs can be viewed live with:
 kubectl logs --follow -n srlinux-controller $(kubectl get pods -A | grep srlinux-controller | awk '{print $2}')
 ```
 
-This will deploy the SR Linux nodes and will create k8s services as per the topology configuration. The services will be exposed via MetalLB and can be queried as:
+This will deploy the SR Linux nodes and will create k8s services as per the topology configuration.
+
+SR Linux custom resources can be queried as:
+
+```bash
+kubectl get srlinux -A
+
+NAMESPACE    NAME   AGE   IMAGE                          STATUS    READY   CONFIG
+2-srl-ixr6   srl1   42s   ghcr.io/nokia/srlinux:latest   Running   true    failed
+2-srl-ixr6   srl2   42s   ghcr.io/nokia/srlinux:latest   Running   true    loaded
+```
+
+Available statuses:
+
+- `STATUS`: `Running` when the underlying pod is running. The status is copied from the pod status.
+- `READY`: `true` when the SR Linux node is ready to accept configuration. The status is `true` when SR Linux management servers is ready to accept connections and configurations.
+- `CONFIG`: `loaded` when the startup-configuration is succesfully applied. The status is `failed` when errors occured during startup-configuration load.
+
+The services will be exposed via MetalLB and can be queried as:
 
 ```text
 ❯ kubectl -n 3node-srlinux get svc
