@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -77,26 +78,15 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 	update *bool,
 	srlinux *srlinuxv1.Srlinux,
 ) {
-	if srlinux.Status.StartupConfig.Phase == "loaded" ||
-		srlinux.Status.StartupConfig.Phase == "failed" {
-		log.Info("startup config load already tried, skipping")
+	if srlinux.Status.StartupConfig.Phase != "" {
+		log.Info("startup config already processed, skipping")
 
 		return
 	}
 
-	// if startup config data is not provided and the state is not "not-provided", set the state to "not-provided"
-	// so that we only log the message once
-	if !srlinux.Spec.GetConfig().ConfigDataPresent {
-		log.Info("no startup config data provided")
-
-		srlinux.Status.StartupConfig.Phase = "not-provided"
-		*update = true
-
-		return
-	}
-
-	log.Info("startup config provided, starting config provisioning...")
-
+	// we need to wait for podIP to be ready as well as the network to be ready
+	// we do this before even checking if the startup config is provided
+	// because we need to create a checkpoing in any case
 	ip := r.waitPodIPReady(ctx, log, srlinux)
 
 	// even though the SR Linux management server is ready, the network might not be ready yet
@@ -107,6 +97,22 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 		return
 	}
 	defer driver.Close()
+
+	// if startup config data is not provided and Phase hasn't been set yet, set the Startup Config state to "not-provided"
+	// and create a checkpoint
+	if !srlinux.Spec.GetConfig().ConfigDataPresent && srlinux.Status.StartupConfig.Phase == "" {
+		log.Info("no startup config data provided")
+
+		srlinux.Status.StartupConfig.Phase = "not-provided"
+		*update = true
+
+		err := createInitCheckpoint(ctx, driver, log)
+		if err != nil {
+			log.Error(err, "failed to create initial checkpoint")
+		}
+
+		return
+	}
 
 	log.Info("Loading provided startup configuration...", "filename",
 		srlinux.Spec.GetConfig().ConfigFile, "path", defaultConfigPath)
@@ -123,15 +129,13 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig(
 
 	log.Info("Loaded provided startup configuration...")
 
+	srlinux.Status.StartupConfig.Phase = "loaded"
+	*update = true
+
 	err = createInitCheckpoint(ctx, driver, log)
 	if err != nil {
 		log.Error(err, "failed to create initial checkpoint after loading startup config")
-
-		return
 	}
-
-	srlinux.Status.StartupConfig.Phase = "loaded"
-	*update = true
 }
 
 // loadStartupConfig loads the provided startup config into the SR Linux device.
@@ -161,16 +165,35 @@ func loadStartupConfig(
 }
 
 // createInitCheckpoint creates a checkpoint named "initial".
-// This checkpoint is used to reset the device to the initial state, which is the state after
-// applying the startup config.
+// This checkpoint is used to reset the device to the initial state, which is the state
+// node booted with and (if present) with applied startup config.
 func createInitCheckpoint(
 	_ context.Context,
 	d *network.Driver,
 	log logr.Logger,
 ) error {
+	log.Info("Creating initial checkpoint...")
+
+	// sometimes status of srlinux cr is not updated immediately,
+	// resulting in several attempts to load configuration and create checkpoint
+	// so we need to check if the checkpoint already exists and bail out if so
+	checkCheckpointCmd := "info from state system configuration checkpoint *"
+	r, err := d.SendCommand(checkCheckpointCmd)
+	if err != nil {
+		log.Error(err, "failed to send command")
+
+		return err
+	}
+
+	if strings.Contains(r.Result, "initial") {
+		log.Info("initial checkpoint already exists, skipping")
+
+		return nil
+	}
+
 	cmd := "/tools system configuration generate-checkpoint name initial"
 
-	r, err := d.SendCommand(cmd)
+	r, err = d.SendCommand(cmd)
 	if err != nil {
 		log.Error(err, "failed to send command")
 
@@ -226,7 +249,7 @@ func (r *SrlinuxReconciler) waitPodIPReady(
 		case <-tick.C:
 			ip := r.getPodIP(ctx, srlinux)
 			if ip != "" {
-				log.Info("pod IP assigned, provisioning configuration", "pod-ip", ip)
+				log.Info("pod IP assigned", "pod-ip", ip)
 
 				return ip
 			}
