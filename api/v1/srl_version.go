@@ -5,13 +5,9 @@
 package v1
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 )
-
-// ErrVersionParse is an error which is raised when srlinux version is failed to parse.
-var ErrVersionParse = errors.New("version parsing failed")
 
 // SrlVersion represents an sr linux version as a set of fields.
 type SrlVersion struct {
