@@ -6,7 +6,6 @@ package v1
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -98,7 +97,7 @@ func TestGetImageVersion(t *testing.T) {
 				Version: "abc",
 				Config:  &NodeConfig{Image: "ghcr.io/nokia/srlinux:somever"},
 			},
-			err: ErrVersionParse,
+			want: &SrlVersion{"0", "", "", "", ""},
 		},
 		{
 			desc: "version is not present, valid image tag is given",
@@ -112,17 +111,13 @@ func TestGetImageVersion(t *testing.T) {
 			spec: &SrlinuxSpec{
 				Config: &NodeConfig{Image: "ghcr.io/nokia/srlinux:somesrl"},
 			},
-			err: ErrVersionParse,
+			want: &SrlVersion{"0", "", "", "", ""},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			v, err := tt.spec.GetImageVersion()
-
-			if !errors.Is(err, tt.err) {
-				t.Fatalf("got error '%v' but expected '%v'", err, tt.err)
-			}
+			v := tt.spec.GetImageVersion()
 
 			if !cmp.Equal(v, tt.want) {
 				t.Fatalf(
