@@ -31,9 +31,14 @@ func (r *SrlinuxReconciler) createSecrets(
 		return err
 	}
 
-	v, err := s.Spec.GetImageVersion()
-	if err != nil {
-		return err
+	v := s.Spec.GetImageVersion()
+
+	if v.Major == "0" {
+		log.Info(
+			"SR Linux image version could not be parsed, will continue without handling license",
+		)
+
+		return nil
 	}
 
 	log.Info("SR Linux image version parsed", "version", v)
@@ -41,7 +46,7 @@ func (r *SrlinuxReconciler) createSecrets(
 	// set license key matching image version
 	s.InitLicenseKey(ctx, secret, v)
 
-	return err
+	return nil
 }
 
 func (r *SrlinuxReconciler) addOrUpdateLicenseSecret(

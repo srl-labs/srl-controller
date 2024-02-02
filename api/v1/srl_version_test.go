@@ -5,7 +5,6 @@
 package v1
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -16,7 +15,6 @@ func TestParseVersionString(t *testing.T) {
 		desc string
 		got  string
 		want *SrlVersion
-		err  error
 	}{
 		{
 			desc: "maj, minor, patch",
@@ -86,17 +84,13 @@ func TestParseVersionString(t *testing.T) {
 		{
 			desc: "invalid1",
 			got:  "abcd",
-			want: nil,
-			err:  ErrVersionParse,
+			want: &SrlVersion{"0", "", "", "", ""},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			ver, err := parseVersionString(tt.got)
-			if !errors.Is(err, tt.err) {
-				t.Fatalf("got error '%v' but expected '%v'", err, tt.err)
-			}
+			ver := parseVersionString(tt.got)
 
 			if !cmp.Equal(ver, tt.want) {
 				t.Fatalf(

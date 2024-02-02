@@ -5,13 +5,9 @@
 package v1
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 )
-
-// ErrVersionParse is an error which is raised when srlinux version is failed to parse.
-var ErrVersionParse = errors.New("version parsing failed")
 
 // SrlVersion represents an sr linux version as a set of fields.
 type SrlVersion struct {
@@ -22,12 +18,12 @@ type SrlVersion struct {
 	Commit string `json:"commit,omitempty"`
 }
 
-func parseVersionString(s string) (*SrlVersion, error) {
+func parseVersionString(s string) *SrlVersion {
 	// Check if the version string is an engineering build with major = 0
 	engineeringVersions := []string{"", "latest", "ga"}
 	for _, ver := range engineeringVersions {
 		if ver == strings.ToLower(s) {
-			return &SrlVersion{"0", "", "", "", ""}, nil
+			return &SrlVersion{"0", "", "", "", ""}
 		}
 	}
 
@@ -38,8 +34,8 @@ func parseVersionString(s string) (*SrlVersion, error) {
 
 	v := re.FindStringSubmatch(s)
 	if v == nil {
-		return nil, ErrVersionParse
+		return &SrlVersion{"0", "", "", "", ""}
 	}
 
-	return &SrlVersion{v[1], v[2], v[3], v[4], v[5]}, nil
+	return &SrlVersion{v[1], v[2], v[3], v[4], v[5]}
 }

@@ -159,7 +159,7 @@ func (s *SrlinuxSpec) GetImage() string {
 // When Version field is set it is returned.
 // In other cases, Image string is evaluated and it's tag substring is parsed.
 // If no tag is present, or tag is latest, the 0.0 version is assumed to be in use.
-func (s *SrlinuxSpec) GetImageVersion() (*SrlVersion, error) {
+func (s *SrlinuxSpec) GetImageVersion() *SrlVersion {
 	if s.Version != "" {
 		return parseVersionString(s.Version)
 	}
