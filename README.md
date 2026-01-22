@@ -144,7 +144,7 @@ To build `srl-controller` container image, execute:
 
 ```bash
 # don't forget to set the correct tag
-# for example make docker-build IMG=ghcr.io/srl-labs/srl-controller:v0.6.1
+# for example make docker-build IMG=ghcr.io/srl-labs/srl-controller:v0.6.2
 make docker-build IMG=ghcr.io/srl-labs/srl-controller:${tag}
 ```
 

@@ -106,7 +106,7 @@ data:
   ixr6e: |
     # ixr6e
     chassis_configuration:
-      "chassis_type": 68
+      "chassis_type": 2
       "base_mac": 02:__RANDMAC__:00:00:00
       "cpm_card_type": 184
 
@@ -130,7 +130,7 @@ data:
   ixr10e: |
     # ixr10e
     chassis_configuration:
-      "chassis_type": 69
+      "chassis_type": 4
       "base_mac": 02:__RANDMAC__:00:00:00
       "cpm_card_type": 184
 
