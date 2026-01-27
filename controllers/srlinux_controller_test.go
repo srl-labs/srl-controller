@@ -81,7 +81,10 @@ func TestSrlinuxReconcile(t *testing.T) {
 
 	for _, tc := range testsCases {
 		t.Run(tc.descr, func(t *testing.T) {
-			fakeClient := fake.NewClientBuilder().WithRuntimeObjects(tc.clientObjs...).Build()
+			fakeClient := fake.NewClientBuilder().
+				WithRuntimeObjects(tc.clientObjs...).
+				WithStatusSubresource(&srlinuxv1.Srlinux{}).
+				Build()
 
 			g := NewWithT(t)
 			reconciler := SrlinuxReconciler{
