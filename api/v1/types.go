@@ -30,7 +30,7 @@ var (
 
 	//nolint:gochecknoglobals
 	defaultConstraints = map[string]string{
-		"cpu":    "500Mi",
+		"cpu":    "500m",
 		"memory": "2Gi",
 	}
 )

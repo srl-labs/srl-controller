@@ -137,6 +137,11 @@ func TestSrlinuxReconciler_BareSrlinuxCR(t *testing.T) {
 				Config: &srlinuxv1.NodeConfig{
 					Image: testImageName,
 				},
+				// Use minimal constraints for E2E tests on resource-constrained CI runners
+				Constraints: map[string]string{
+					"cpu":    "200m",
+					"memory": "1Gi",
+				},
 			},
 		}
 		g.Expect(k8sClient.Create(ctx, srlinux)).Should(Succeed())
@@ -304,6 +309,11 @@ func testReconciliationWithConfig(
 				ConfigDataPresent: true,
 				ConfigFile:        configFile,
 			},
+			// Use minimal constraints for E2E tests on resource-constrained CI runners
+			Constraints: map[string]string{
+				"cpu":    "200m",
+				"memory": "1Gi",
+			},
 		},
 	}
 	g.Expect(k8sClient.Create(ctx, srl)).Should(Succeed())
@@ -392,6 +402,11 @@ func TestSrlinuxReconciler_WithCustomInitImage(t *testing.T) {
 				Config: &srlinuxv1.NodeConfig{
 					Image:     testImageName,
 					InitImage: customInitImage,
+				},
+				// Use minimal constraints for E2E tests on resource-constrained CI runners
+				Constraints: map[string]string{
+					"cpu":    "200m",
+					"memory": "1Gi",
 				},
 			},
 		}
