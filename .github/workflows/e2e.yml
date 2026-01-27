@@ -6,7 +6,7 @@ name: E2E
       kne_ref:
         description: "openconfig/kne reference (tag, commit, branch)"
         type: string
-        default: v0.1.9
+        default: v0.3.1
         required: true
       kind_version:
         description: "KinD version"
@@ -20,7 +20,7 @@ env:
 jobs:
   e2e:
     name: End-to-end test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
