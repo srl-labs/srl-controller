@@ -29,6 +29,7 @@ jobs:
             "TestSrlinuxReconciler_BareSrlinuxCR",
             "TestSrlinuxReconciler_WithJSONStartupConfig",
             "TestSrlinuxReconciler_WithCLIStartupConfig",
+            "TestSrlinuxReconciler_WithCustomInitImage",
           ]
 
     steps:
