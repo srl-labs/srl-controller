@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Build the manager binary
-FROM golang:1.20 as builder
+FROM golang:1.24.9 as builder
 ARG TARGETOS
 ARG TARGETARCH
 
