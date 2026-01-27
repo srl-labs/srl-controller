@@ -1,10 +1,10 @@
 # KNE_REF is a git reference to use for KNE. It can be a branch, tag, or commit hash.
-KNE_REF ?= v0.1.9
+KNE_REF ?= v0.3.1
 KNE_REPO := https://github.com/openconfig/kne.git
 KNE_TEMP_DIR := /tmp/.srlcontroller-tests/kne
 KNE_TEST_DEPLOYMENT_FILE := ${KNE_TEMP_DIR}/deploy/kne/kind-bridge-no-controllers.yaml
 KIND_CLUSTER_NAME ?= srl-test
-SRL_IMAGE ?= ghcr.io/nokia/srlinux:latest
+SRL_IMAGE ?= ghcr.io/nokia/srlinux:25.10
 
 .PHONY: install-kne
 install-kne: ## Install KNE

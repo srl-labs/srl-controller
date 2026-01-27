@@ -66,7 +66,7 @@ func createVariantsCfgMap(
 			return err
 		}
 
-		cfgMap.ObjectMeta.Namespace = ns
+		cfgMap.Namespace = ns
 
 		err = r.Create(ctx, cfgMap)
 		if err != nil {
@@ -104,7 +104,7 @@ func createTopomacScriptCfgMap(
 			return err
 		}
 
-		cfgMap.ObjectMeta.Namespace = ns
+		cfgMap.Namespace = ns
 
 		err = r.Create(ctx, cfgMap)
 		if err != nil {
@@ -142,7 +142,7 @@ func createKNEEntrypointCfgMap(
 			return err
 		}
 
-		cfgMap.ObjectMeta.Namespace = ns
+		cfgMap.Namespace = ns
 
 		err = r.Create(ctx, cfgMap)
 		if err != nil {

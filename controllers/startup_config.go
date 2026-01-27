@@ -96,7 +96,11 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig( //nolint:funlen
 	if driver == nil {
 		return
 	}
-	defer driver.Close()
+	defer func() {
+		if err := driver.Close(); err != nil {
+			log.Error(err, "failed to close driver")
+		}
+	}()
 
 	// if startup config data is not provided and Phase hasn't been set yet, set the Startup Config state to "not-provided"
 	// and create a checkpoint

@@ -21,7 +21,7 @@ func TestGetImage(t *testing.T) {
 		{
 			desc: "no image, no version, default applies",
 			spec: &SrlinuxSpec{},
-			want: defaultSRLinuxImageName,
+			want: defaultSrLinuxImageName,
 		},
 		{
 			desc: "image with valid tag",
@@ -37,7 +37,7 @@ func TestGetImage(t *testing.T) {
 			spec: &SrlinuxSpec{
 				Version: "21.11.1",
 			},
-			want: defaultSRLinuxImageName + ":21.11.1",
+			want: defaultSrLinuxImageName + ":21.11.1",
 		},
 		{
 			desc: "image without tag",
@@ -248,6 +248,45 @@ func TestGetModel(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			img := tt.spec.GetModel()
+
+			if !cmp.Equal(img, tt.want) {
+				t.Fatalf(
+					"%s: actual and expected inputs do not match\nactual: %+v\nexpected:%+v",
+					tt.desc,
+					img,
+					tt.want,
+				)
+			}
+		},
+		)
+	}
+}
+
+func TestGetInitImage(t *testing.T) {
+	tests := []struct {
+		desc string
+		spec *SrlinuxSpec
+		want string
+	}{
+		{
+			desc: "no init image specified, default applies",
+			spec: &SrlinuxSpec{},
+			want: defaultSrlinuxInitContainerImage,
+		},
+		{
+			desc: "custom init image is present",
+			spec: &SrlinuxSpec{
+				Config: &NodeConfig{
+					InitImage: "us-west1-docker.pkg.dev/kne-external/kne/init-wait:ga",
+				},
+			},
+			want: "us-west1-docker.pkg.dev/kne-external/kne/init-wait:ga",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			img := tt.spec.GetInitImage()
 
 			if !cmp.Equal(img, tt.want) {
 				t.Fatalf(

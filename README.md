@@ -84,7 +84,7 @@ Available statuses:
 
 - `STATUS`: `Running` when the underlying pod is running. The status is copied from the pod status.
 - `READY`: `true` when the SR Linux node is ready to accept configuration. The status is `true` when SR Linux management servers is ready to accept connections and configurations.
-- `CONFIG`: `loaded` when the startup-configuration is succesfully applied. The status is `failed` when errors occured during startup-configuration load.
+- `CONFIG`: `loaded` when the startup-configuration is successfully applied. The status is `failed` when errors occurred during startup-configuration load.
 
 The services will be exposed via MetalLB and can be queried as:
 
@@ -162,7 +162,7 @@ docker tag ghcr.io/srl-labs/srl-controller:${tag} ghcr.io/srl-labs/srl-controlle
 docker push ghcr.io/srl-labs/srl-controller:latest
 ```
 
-Note, update the SR Linux manifest in the [KNE repo](https://github.com/openconfig/kne/) to use the new version of the controller. To generate the manifest, run:
+Note, update the SR Linux manifest in the [KNE repo](https://github.com/openconfig/kne/tree/main/manifests/controllers/srlinux) to use the new version of the controller. To generate the manifest, run:
 
 ```bash
 kustomize build config/default
