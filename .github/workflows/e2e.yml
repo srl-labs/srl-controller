@@ -12,10 +12,10 @@ name: E2E
         description: "KinD version"
         type: string
         required: true
-        default: v0.17.0
+        default: v0.24.0
 
 env:
-  GOVER: 1.20.2
+  GOVER: 1.24.9
 
 jobs:
   e2e:
@@ -36,15 +36,15 @@ jobs:
         run: |
           echo "KNE_REF=${{ inputs.kne_ref }}" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOVER }}
 
       - name: Install kind
-        uses: engineerd/setup-kind@v0.5.0
+        uses: engineerd/setup-kind@v0.6.2
         with:
           name: srl-test # cluster name
           version: ${{ inputs.kind_version }}
@@ -54,6 +54,6 @@ jobs:
         run: make prepare-e2e-env
 
       - name: Run e2e tests
-        # this test ensures that srl-controller (built from referenced source) can be succesfully installed on a KNE cluster
+        # this test ensures that srl-controller (built from referenced source) can be successfully installed on a KNE cluster
         # for a using specified versions of KNE/KinD
         run: E2E_TEST_NAME=${{ matrix.test }} make test-e2e

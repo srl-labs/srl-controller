@@ -28,7 +28,7 @@ jobs:
       - name: Test
         run: make test
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
 
   golang-ci-lint:
     runs-on: ubuntu-24.04
