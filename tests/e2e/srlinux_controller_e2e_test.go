@@ -77,6 +77,30 @@ func createConfigMapFromFile(t *testing.T, g *WithT, name, key, file string) {
 	g.Expect(k8sClient.Create(ctx, configMap)).Should(Succeed())
 }
 
+func logPodEvents(t *testing.T, namespace, podName string) {
+	t.Helper()
+
+	eventList := &corev1.EventList{}
+	err := k8sClient.List(ctx, eventList)
+	if err != nil {
+		t.Logf("Failed to list events: %v", err)
+		return
+	}
+
+	t.Logf("Events for pod %s/%s:", namespace, podName)
+	for _, event := range eventList.Items {
+		if event.InvolvedObject.Kind == "Pod" &&
+			event.InvolvedObject.Name == podName &&
+			event.InvolvedObject.Namespace == namespace {
+			t.Logf("  [%s] %s: %s - %s",
+				event.Type,
+				event.Reason,
+				event.Source.Component,
+				event.Message)
+		}
+	}
+}
+
 // TestSrlinuxReconciler_BareSrlinuxCR tests the reconciliation of the Srlinux custom resource
 // which has a bare minimal spec - just the test image.
 func TestSrlinuxReconciler_BareSrlinuxCR(t *testing.T) {
@@ -145,10 +169,26 @@ func TestSrlinuxReconciler_BareSrlinuxCR(t *testing.T) {
 		}).Should(Succeed())
 
 		t.Log("Ensuring the Srlinux CR pod is running")
+
+		// Log pod events for debugging
+		logPodEvents(t, SrlinuxNamespace, SrlinuxName)
+
 		g.Eventually(func() bool {
 			found := &corev1.Pod{}
 
 			g.Expect(k8sClient.Get(ctx, namespacedName, found)).Should(Succeed())
+
+			// Log pod status for debugging
+			t.Logf("Pod phase: %s", found.Status.Phase)
+			t.Logf("Pod conditions: %+v", found.Status.Conditions)
+
+			// Log container statuses
+			for i, cs := range found.Status.InitContainerStatuses {
+				t.Logf("InitContainer[%d] %s: Ready=%v, State=%+v", i, cs.Name, cs.Ready, cs.State)
+			}
+			for i, cs := range found.Status.ContainerStatuses {
+				t.Logf("Container[%d] %s: Ready=%v, State=%+v", i, cs.Name, cs.Ready, cs.State)
+			}
 
 			return found.Status.Phase == corev1.PodRunning
 		}, srlinuxMaxStartupTime, time.Second).Should(BeTrue())
