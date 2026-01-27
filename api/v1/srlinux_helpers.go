@@ -92,8 +92,8 @@ func (s *SrlinuxSpec) GetImage() string {
 // GetInitImage gets init container image from the srlinux spec,
 // default init container image is returned if none present in the spec.
 func (s *SrlinuxSpec) GetInitImage() string {
-	if s.Config.InitImage != "" {
-		return s.Config.InitImage
+	if s.GetConfig().InitImage != "" {
+		return s.GetConfig().InitImage
 	}
 
 	return defaultSrlinuxInitContainerImage

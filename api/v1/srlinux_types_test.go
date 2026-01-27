@@ -261,3 +261,42 @@ func TestGetModel(t *testing.T) {
 		)
 	}
 }
+
+func TestGetInitImage(t *testing.T) {
+	tests := []struct {
+		desc string
+		spec *SrlinuxSpec
+		want string
+	}{
+		{
+			desc: "no init image specified, default applies",
+			spec: &SrlinuxSpec{},
+			want: defaultSrlinuxInitContainerImage,
+		},
+		{
+			desc: "custom init image is present",
+			spec: &SrlinuxSpec{
+				Config: &NodeConfig{
+					InitImage: "us-west1-docker.pkg.dev/kne-external/kne/init-wait:ga",
+				},
+			},
+			want: "us-west1-docker.pkg.dev/kne-external/kne/init-wait:ga",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			img := tt.spec.GetInitImage()
+
+			if !cmp.Equal(img, tt.want) {
+				t.Fatalf(
+					"%s: actual and expected inputs do not match\nactual: %+v\nexpected:%+v",
+					tt.desc,
+					img,
+					tt.want,
+				)
+			}
+		},
+		)
+	}
+}
