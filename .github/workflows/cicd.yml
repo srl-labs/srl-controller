@@ -44,7 +44,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           # args: --config=./.github/workflows/linters/.golangci.yml
-          version: "v2"
+          version: "v2.1"
 
   release:
     runs-on: ubuntu-24.04
