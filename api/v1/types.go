@@ -6,7 +6,7 @@ package v1
 
 const (
 	defaultSRLinuxImageName = "ghcr.io/nokia/srlinux"
-	defaultSrlinuxVariant   = "ixrd2"
+	defaultSrlinuxVariant   = "ixrd2l"
 )
 
 var (
@@ -29,8 +29,8 @@ var (
 
 	//nolint:gochecknoglobals
 	defaultConstraints = map[string]string{
-		"cpu":    "2",
-		"memory": "4Gi",
+		"cpu":    "500Mi",
+		"memory": "2Gi",
 	}
 )
 
