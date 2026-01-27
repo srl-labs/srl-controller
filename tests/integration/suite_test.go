@@ -62,7 +62,9 @@ func prepareEnvTest() {
 		// Use the default location of the envtest binaries.
 		// note that the k8s version must match the version used in the Makefile.
 		assetstPath := filepath.Join("..", "..", "bin", "k8s", "1.25.0-linux-amd64")
-		os.Setenv("KUBEBUILDER_ASSETS", assetstPath)
+		if err := os.Setenv("KUBEBUILDER_ASSETS", assetstPath); err != nil {
+			panic(fmt.Sprintf("Failed to set KUBEBUILDER_ASSETS: %v", err))
+		}
 	}
 }
 

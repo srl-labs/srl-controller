@@ -12,7 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -47,7 +47,7 @@ func (r *SrlinuxReconciler) podForSrlinux(
 		Spec: corev1.PodSpec{
 			InitContainers:                createInitContainers(s),
 			Containers:                    createContainers(s),
-			TerminationGracePeriodSeconds: pointer.Int64(terminationGracePeriodSeconds),
+			TerminationGracePeriodSeconds: ptr.To(int64(terminationGracePeriodSeconds)),
 			NodeSelector:                  map[string]string{},
 			Affinity:                      createAffinity(s),
 			Volumes:                       createVolumes(s),
@@ -99,8 +99,8 @@ func createContainers(s *srlinuxv1.Srlinux) []corev1.Container {
 		Resources:       toResourceRequirements(s.Spec.GetConstraints()),
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
-			Privileged: pointer.Bool(true),
-			RunAsUser:  pointer.Int64(0),
+			Privileged: ptr.To(true),
+			RunAsUser:  ptr.To(int64(0)),
 		},
 		VolumeMounts: createVolumeMounts(s),
 		ReadinessProbe: &corev1.Probe{
@@ -176,7 +176,7 @@ func createVolumes(s *srlinuxv1.Srlinux) []corev1.Volume {
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: entrypointCfgMapName,
 					},
-					DefaultMode: pointer.Int32(fileMode777),
+					DefaultMode: ptr.To(int32(fileMode777)),
 				},
 			},
 		},
