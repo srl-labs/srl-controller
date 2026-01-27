@@ -313,3 +313,118 @@ func testReconciliationWithConfig(
 
 	g.Expect(string(b)).Should(ContainSubstring("set from e2e test"))
 }
+
+// TestSrlinuxReconciler_WithCustomInitImage tests the reconciliation of the Srlinux custom resource
+// with a custom init image specified.
+func TestSrlinuxReconciler_WithCustomInitImage(t *testing.T) {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: SrlinuxNamespace,
+		},
+	}
+
+	customInitImage := "us-west1-docker.pkg.dev/kne-external/kne/init-wait:ga"
+
+	t.Run("Should reconcile a Srlinux custom resource with custom init image", func(t *testing.T) {
+		g := NewWithT(t)
+
+		createNamespace(t, g, namespace)
+		defer deleteNamespace(t, g, namespace)
+
+		t.Log("Checking that Srlinux resource doesn't exist in the cluster")
+		srlinux := &srlinuxv1.Srlinux{}
+
+		err := k8sClient.Get(ctx, namespacedName, srlinux)
+
+		g.Expect(errors.IsNotFound(err)).To(BeTrue())
+
+		t.Log("Creating the custom resource with custom init image for the Kind Srlinux")
+		srlinux = &srlinuxv1.Srlinux{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      SrlinuxName,
+				Namespace: SrlinuxNamespace,
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Srlinux",
+				APIVersion: "kne.srlinux.dev/v1",
+			},
+			Spec: srlinuxv1.SrlinuxSpec{
+				Config: &srlinuxv1.NodeConfig{
+					Image:     testImageName,
+					InitImage: customInitImage,
+				},
+			},
+		}
+		g.Expect(k8sClient.Create(ctx, srlinux)).Should(Succeed())
+
+		t.Log("Checking if the custom resource was successfully created")
+		g.Eventually(func() error {
+			found := &srlinuxv1.Srlinux{}
+
+			return k8sClient.Get(ctx, namespacedName, found)
+		}).Should(Succeed())
+
+		// Reconcile is triggered by the creation of the custom resource
+
+		t.Log("Checking if Srlinux Pod was successfully created in the reconciliation")
+		g.Eventually(func() error {
+			found := &corev1.Pod{}
+
+			return k8sClient.Get(ctx, namespacedName, found)
+		}).Should(Succeed())
+
+		t.Log("Ensuring the custom init image is used in the pod")
+		g.Eventually(func() error {
+			pod := &corev1.Pod{}
+			g.Expect(k8sClient.Get(ctx, namespacedName, pod)).Should(Succeed())
+
+			if len(pod.Spec.InitContainers) == 0 {
+				return fmt.Errorf("no init containers found in pod")
+			}
+
+			initContainer := pod.Spec.InitContainers[0]
+			if initContainer.Image != customInitImage {
+				return fmt.Errorf("got init container image: %s, want: %s", initContainer.Image, customInitImage)
+			}
+
+			return nil
+		}).Should(Succeed())
+
+		t.Log("Ensuring the Srlinux CR pod is running")
+		g.Eventually(func() bool {
+			found := &corev1.Pod{}
+
+			g.Expect(k8sClient.Get(ctx, namespacedName, found)).Should(Succeed())
+
+			return found.Status.Phase == corev1.PodRunning
+		}, srlinuxMaxStartupTime, time.Second).Should(BeTrue())
+
+		t.Log("Ensuring the Srlinux CR Ready status reached true")
+
+		g.Eventually(func() bool {
+			srl := &srlinuxv1.Srlinux{}
+			g.Expect(k8sClient.Get(ctx, namespacedName, srl)).Should(Succeed())
+
+			return srl.Status.Ready == true
+		}, srlinuxMaxReadyTime).Should(BeTrue())
+
+		t.Log("Deleting the custom resource for the Kind Srlinux")
+		g.Expect(k8sClient.Delete(ctx, srlinux)).Should(Succeed())
+
+		t.Log("Checking if the custom resource was successfully deleted")
+		g.Eventually(func() error {
+			found := &srlinuxv1.Srlinux{}
+
+			return k8sClient.Get(ctx, namespacedName, found)
+		}).ShouldNot(Succeed())
+
+		// Reconcile is triggered by the deletion of the custom resource
+
+		t.Log("Checking if the pod was successfully deleted")
+		g.Eventually(func() error {
+			found := &corev1.Pod{}
+
+			return k8sClient.Get(ctx, namespacedName, found)
+		}).ShouldNot(Succeed())
+	})
+}
