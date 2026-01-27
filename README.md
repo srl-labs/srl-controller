@@ -162,7 +162,7 @@ docker tag ghcr.io/srl-labs/srl-controller:${tag} ghcr.io/srl-labs/srl-controlle
 docker push ghcr.io/srl-labs/srl-controller:latest
 ```
 
-Note, update the SR Linux manifest in the [KNE repo](https://github.com/openconfig/kne/) to use the new version of the controller. To generate the manifest, run:
+Note, update the SR Linux manifest in the [KNE repo](https://github.com/openconfig/kne/tree/main/manifests/controllers/srlinux) to use the new version of the controller. To generate the manifest, run:
 
 ```bash
 kustomize build config/default

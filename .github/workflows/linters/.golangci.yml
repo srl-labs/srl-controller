@@ -4,7 +4,7 @@
 
 run:
   # running w/ 1.17 because we dont actually need/use 1.18 things and 1.18 breaks some linters.
-  go: "1.17"
+  go: "1.24.9"
   timeout: 5m
   skip-dirs:
     - private

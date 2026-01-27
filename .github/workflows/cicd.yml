@@ -14,15 +14,15 @@ on:
   workflow_dispatch:
 
 env:
-  GOVER: 1.20.2
+  GOVER: 1.24.9
   CGO_ENABLED: 0
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOVER }}
       - name: Test
@@ -31,30 +31,30 @@ jobs:
         uses: codecov/codecov-action@v3
 
   golang-ci-lint:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOVER }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
-          args: --config=./.github/workflows/linters/.golangci.yml
-          version: "v1.51.2"
+          # args: --config=./.github/workflows/linters/.golangci.yml
+          version: "v2"
 
   release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     needs:
       - golang-ci-lint
       - test
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOVER }}
 
