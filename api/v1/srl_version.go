@@ -6,6 +6,7 @@ package v1
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -21,10 +22,8 @@ type SrlVersion struct {
 func parseVersionString(s string) *SrlVersion {
 	// Check if the version string is an engineering build with major = 0
 	engineeringVersions := []string{"", "latest", "ga"}
-	for _, ver := range engineeringVersions {
-		if ver == strings.ToLower(s) {
-			return &SrlVersion{"0", "", "", "", ""}
-		}
+	if slices.Contains(engineeringVersions, strings.ToLower(s)) {
+		return &SrlVersion{"0", "", "", "", ""}
 	}
 
 	// https://regex101.com/r/eWS6Ms/3

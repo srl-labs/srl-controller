@@ -84,7 +84,7 @@ Available statuses:
 
 - `STATUS`: `Running` when the underlying pod is running. The status is copied from the pod status.
 - `READY`: `true` when the SR Linux node is ready to accept configuration. The status is `true` when SR Linux management servers is ready to accept connections and configurations.
-- `CONFIG`: `loaded` when the startup-configuration is succesfully applied. The status is `failed` when errors occured during startup-configuration load.
+- `CONFIG`: `loaded` when the startup-configuration is successfully applied. The status is `failed` when errors occurred during startup-configuration load.
 
 The services will be exposed via MetalLB and can be queried as:
 
