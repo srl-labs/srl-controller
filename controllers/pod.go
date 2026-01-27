@@ -80,7 +80,7 @@ func createObjectMeta(s *srlinuxv1.Srlinux) metav1.ObjectMeta {
 func createInitContainers(s *srlinuxv1.Srlinux) []corev1.Container {
 	return []corev1.Container{{
 		Name:  fmt.Sprintf("init-%s", s.Name),
-		Image: initContainerName,
+		Image: s.Spec.GetInitImage(),
 		Args: []string{
 			fmt.Sprintf("%d", s.Spec.NumInterfaces+1),
 			fmt.Sprintf("%d", s.Spec.Config.Sleep),

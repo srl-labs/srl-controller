@@ -21,7 +21,7 @@ func TestGetImage(t *testing.T) {
 		{
 			desc: "no image, no version, default applies",
 			spec: &SrlinuxSpec{},
-			want: defaultSRLinuxImageName,
+			want: defaultSrLinuxImageName,
 		},
 		{
 			desc: "image with valid tag",
@@ -37,7 +37,7 @@ func TestGetImage(t *testing.T) {
 			spec: &SrlinuxSpec{
 				Version: "21.11.1",
 			},
-			want: defaultSRLinuxImageName + ":21.11.1",
+			want: defaultSrLinuxImageName + ":21.11.1",
 		},
 		{
 			desc: "image without tag",

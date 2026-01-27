@@ -74,7 +74,7 @@ func (s *SrlinuxSpec) GetModel() string {
 // if Config.Image is provided it takes precedence over all other option
 // if not, the Spec.Version is used as a tag for public container image ghcr.io/nokia/srlinux.
 func (s *SrlinuxSpec) GetImage() string {
-	img := defaultSRLinuxImageName
+	img := defaultSrLinuxImageName
 
 	if s.GetConfig().Image != "" {
 		img = s.GetConfig().Image
@@ -87,6 +87,16 @@ func (s *SrlinuxSpec) GetImage() string {
 	}
 
 	return img
+}
+
+// GetInitImage gets init container image from the srlinux spec,
+// default init container image is returned if none present in the spec.
+func (s *SrlinuxSpec) GetInitImage() string {
+	if s.Config.InitImage != "" {
+		return s.Config.InitImage
+	}
+
+	return defaultSrlinuxInitContainerImage
 }
 
 // GetImageVersion finds an srlinux image version by looking at the Image field of the spec

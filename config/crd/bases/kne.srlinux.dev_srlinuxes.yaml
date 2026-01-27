@@ -63,6 +63,7 @@ spec:
                 description: NodeConfig represents srlinux node configuration parameters.
                 properties:
                   args:
+                    description: Command args to pass into the pod.
                     items:
                       type: string
                     type: array
@@ -85,6 +86,7 @@ spec:
                         type: integer
                     type: object
                   command:
+                    description: Command to pass into pod.
                     items:
                       type: string
                     type: array
@@ -109,8 +111,14 @@ spec:
                     description: Map of environment variables to pass into the pod.
                     type: object
                   image:
+                    description: Container image to use with for the SR Linux container.
+                    type: string
+                  init-image:
+                    description: Init container image to use with for the SR Linux
+                      container.
                     type: string
                   sleep:
+                    description: Sleep time before starting the pod.
                     format: int32
                     type: integer
                 type: object

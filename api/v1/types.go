@@ -5,8 +5,9 @@
 package v1
 
 const (
-	defaultSRLinuxImageName = "ghcr.io/nokia/srlinux"
-	defaultSrlinuxVariant   = "ixrd2l"
+	defaultSrLinuxImageName          = "ghcr.io/nokia/srlinux"
+	defaultSrlinuxVariant            = "ixrd2l"
+	defaultSrlinuxInitContainerImage = "ghcr.io/srl-labs/init-wait:latest"
 )
 
 var (
@@ -36,9 +37,14 @@ var (
 
 // NodeConfig represents srlinux node configuration parameters.
 type NodeConfig struct {
-	Command []string `json:"command,omitempty"` // Command to pass into pod.
-	Args    []string `json:"args,omitempty"`    // Command args to pass into the pod.
-	Image   string   `json:"image,omitempty"`   // Docker image to use with pod.
+	// Command to pass into pod.
+	Command []string `json:"command,omitempty"`
+	// Command args to pass into the pod.
+	Args []string `json:"args,omitempty"`
+	// Container image to use with for the SR Linux container.
+	Image string `json:"image,omitempty"`
+	// Init container image to use with for the SR Linux container.
+	InitImage string `json:"init-image,omitempty"`
 	// Map of environment variables to pass into the pod.
 	Env map[string]string `json:"env,omitempty"`
 	// Specific entry point command for accessing the pod.
@@ -50,7 +56,8 @@ type NodeConfig struct {
 	// When set to true by kne, srlinux controller will attempt to mount the file with startup config to the pod
 	ConfigDataPresent bool            `json:"config_data_present,omitempty"`
 	Cert              *CertificateCfg `json:"cert,omitempty"`
-	Sleep             uint32          `json:"sleep,omitempty"` // Sleep time before starting the pod.
+	// Sleep time before starting the pod.
+	Sleep uint32 `json:"sleep,omitempty"`
 }
 
 // CertificateCfg represents srlinux certificate configuration parameters.
