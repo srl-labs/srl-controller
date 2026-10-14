@@ -26,7 +26,12 @@ func createConfigMaps(
 	s *srlinuxv1.Srlinux,
 	log logr.Logger,
 ) error {
-	err := createVariantsCfgMap(ctx, r, s.Namespace, log)
+	variants, err := createVariantsCfgMap(ctx, r, s.Namespace, log)
+	if err != nil {
+		return err
+	}
+
+	err = createTopologyCfgMap(ctx, r, s, variants, log)
 	if err != nil {
 		return err
 	}
@@ -41,12 +46,14 @@ func createConfigMaps(
 	return err
 }
 
+// createVariantsCfgMap creates the srlinux-variants config map if it does not exist and returns it.
+// The created object is returned directly since it is not yet visible through the client cache.
 func createVariantsCfgMap(
 	ctx context.Context,
 	r *SrlinuxReconciler,
 	ns string,
 	log logr.Logger,
-) error {
+) (*corev1.ConfigMap, error) {
 	// Check if the variants cfg map already exists, if not create a new one
 	cfgMap := &corev1.ConfigMap{}
 
@@ -56,27 +63,27 @@ func createVariantsCfgMap(
 
 		data, err := variantsFS.ReadFile("manifests/variants/srl_variants.yml")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		decoder := serializer.NewCodecFactory(clientgoscheme.Scheme).UniversalDecoder()
 
 		err = runtime.DecodeInto(decoder, data, cfgMap)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		cfgMap.Namespace = ns
 
 		err = r.Create(ctx, cfgMap)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		return nil
+		return cfgMap, nil
 	}
 
-	return err
+	return cfgMap, err
 }
 
 func createTopomacScriptCfgMap(

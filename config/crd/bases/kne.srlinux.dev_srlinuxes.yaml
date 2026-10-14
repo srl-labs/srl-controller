@@ -59,6 +59,40 @@ spec:
           spec:
             description: SrlinuxSpec defines the desired state of Srlinux.
             properties:
+              components:
+                description: |-
+                  Components lists the line cards installed in the chassis. When set, the slot
+                  configuration of the model's topology template is replaced with these components.
+                  When empty, the model's topology template is used unchanged.
+                items:
+                  description: Component is a line card installed in a chassis slot.
+                  properties:
+                    slot:
+                      description: Slot is the chassis slot number the line card is
+                        installed in.
+                      format: int32
+                      minimum: 1
+                      type: integer
+                    type:
+                      description: |-
+                        Type is the line card (IMM) model. When empty, the line card of the lowest
+                        numbered slot in the model's topology template is used.
+                      enum:
+                      - imm2-36-400g-sync-qsfpdd
+                      - imm3-18-800g-qsfpdd
+                      - imm3-36-800g-osfp
+                      - imm3-36-800g-qsfpdd
+                      - imm3-36-800g-sync-qsfpdd
+                      - imm36-400g-qsfpdd
+                      - imm60-100g-qsfp28
+                      type: string
+                  required:
+                  - slot
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - slot
+                x-kubernetes-list-type: map
               config:
                 description: NodeConfig represents srlinux node configuration parameters.
                 properties:
@@ -137,6 +171,11 @@ spec:
                   in case it is not encoded in the image tag
                 type: string
             type: object
+            x-kubernetes-validations:
+            - message: components are only supported on modular models ixr6, ixr10,
+                ixr6e and ixr10e
+              rule: '!has(self.components) || (has(self.model) && self.model in [''ixr6'',
+                ''ixr10'', ''ixr6e'', ''ixr10e''])'
           status:
             description: SrlinuxStatus defines the observed state of Srlinux.
             properties:
