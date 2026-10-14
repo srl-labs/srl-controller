@@ -118,6 +118,10 @@ To remove the packets-per-second limit of a public container image or to launch 
 
 Navigate to [Using license files](docs/using-licenses.md) document to have a detailed explanation on that topic.
 
+## Line cards
+
+Modular variants (ixr6, ixr10, ixr6e, ixr10e) can be emulated with multiple line cards. See [Line cards](docs/line-cards.md).
+
 ## Controller operations
 
 The controller is designed to manage the `Srlinux` custom resource defined with [the following CRD](https://doc.crds.dev/github.com/srl-labs/srl-controller).

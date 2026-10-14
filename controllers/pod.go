@@ -143,22 +143,7 @@ func createAffinity(s *srlinuxv1.Srlinux) *corev1.Affinity {
 
 func createVolumes(s *srlinuxv1.Srlinux) []corev1.Volume {
 	vols := []corev1.Volume{
-		{
-			Name: variantsVolName,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: variantsCfgMapName,
-					},
-					Items: []corev1.KeyToPath{
-						{
-							Key:  s.Spec.GetModel(),
-							Path: variantsTemplateTempName,
-						},
-					},
-				},
-			},
-		},
+		createVariantsVolume(s),
 		{
 			Name: topomacVolName,
 			VolumeSource: corev1.VolumeSource{
@@ -187,6 +172,33 @@ func createVolumes(s *srlinuxv1.Srlinux) []corev1.Volume {
 	}
 
 	return vols
+}
+
+// createVariantsVolume returns the volume holding the node's topology template.
+// Nodes with components use their per-node topology config map; others use the model's
+// entry in the shared variants config map.
+func createVariantsVolume(s *srlinuxv1.Srlinux) corev1.Volume {
+	cfgMapName, key := variantsCfgMapName, s.Spec.GetModel()
+	if len(s.Spec.Components) > 0 {
+		cfgMapName, key = topologyCfgMapName(s), variantsTemplateTempName
+	}
+
+	return corev1.Volume{
+		Name: variantsVolName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: cfgMapName,
+				},
+				Items: []corev1.KeyToPath{
+					{
+						Key:  key,
+						Path: variantsTemplateTempName,
+					},
+				},
+			},
+		},
+	}
 }
 
 func createVolumeMounts(s *srlinuxv1.Srlinux) []corev1.VolumeMount {

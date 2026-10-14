@@ -35,6 +35,7 @@ import (
 )
 
 // SrlinuxSpec defines the desired state of Srlinux.
+// +kubebuilder:validation:XValidation:rule="!has(self.components) || (has(self.model) && self.model in ['ixr6', 'ixr10', 'ixr6e', 'ixr10e'])",message="components are only supported on modular models ixr6, ixr10, ixr6e and ixr10e"
 type SrlinuxSpec struct {
 	Config        *NodeConfig       `json:"config,omitempty"`
 	NumInterfaces int               `json:"num-interfaces,omitempty"`
@@ -44,7 +45,28 @@ type SrlinuxSpec struct {
 	// Version may be set in kne topology as a mean to explicitly provide version information
 	// in case it is not encoded in the image tag
 	Version string `json:"version,omitempty"`
+	// Components lists the line cards installed in the chassis. When set, the slot
+	// configuration of the model's topology template is replaced with these components.
+	// When empty, the model's topology template is used unchanged.
+	// +listType=map
+	// +listMapKey=slot
+	Components []Component `json:"components,omitempty"`
 }
+
+// Component is a line card installed in a chassis slot.
+type Component struct {
+	// Slot is the chassis slot number the line card is installed in.
+	// +kubebuilder:validation:Minimum=1
+	Slot int32 `json:"slot"`
+	// Type is the line card (IMM) model. When empty, the line card of the lowest
+	// numbered slot in the model's topology template is used.
+	Type IMMType `json:"type,omitempty"`
+}
+
+// IMMType is the name of an SR Linux line card (IMM) model, e.g. imm36-400g-qsfpdd.
+// The enum must match the line card catalog in controllers/imm.go.
+// +kubebuilder:validation:Enum=imm2-36-400g-sync-qsfpdd;imm3-18-800g-qsfpdd;imm3-36-800g-osfp;imm3-36-800g-qsfpdd;imm3-36-800g-sync-qsfpdd;imm36-400g-qsfpdd;imm60-100g-qsfp28
+type IMMType string
 
 // SrlinuxStatus defines the observed state of Srlinux.
 type SrlinuxStatus struct {
