@@ -11,12 +11,33 @@ metadata:
 data:
   kne-entrypoint.sh: |
     #!/bin/bash
-    # this entrypoint ensures that we call topomac script before executing the main entrypoint
+    # Entrypoint script executed on container start and restart.
 
     sudo bash /tmp/topomac/topomac.sh
-    echo "topomac.sh" script finished
+    echo "topomac.sh script finished"
 
-    # copy potentially provided startup config files
-    sudo cp -L /tmp/startup-config/* /etc/opt/srlinux/
+    IP=$(which ip)
+    ip_versions=("4" "6")
+
+    if ${IP} link show eth0 > /dev/null 2>&1; then
+        for version in "${ip_versions[@]}"; do
+            sudo ${IP} -"${version}" route save dev eth0 > /etc/opt/srlinux/saved-route-"${version}"
+            sudo ${IP} -"${version}" address save dev eth0 > /etc/opt/srlinux/saved-ip-"${version}"
+        done
+    elif ${IP} link show mgmt0 > /dev/null 2>&1; then
+        sudo ${IP} link set mgmt0 up
+        for version in "${ip_versions[@]}"; do
+            sudo ${IP} -"${version}" address flush dev mgmt0
+            sudo ${IP} -"${version}" route flush dev mgmt0
+            sudo ${IP} -"${version}" addr restore dev mgmt0 < /etc/opt/srlinux/saved-ip-"${version}" 2>/dev/null
+            sudo ${IP} -"${version}" route restore < /etc/opt/srlinux/saved-route-"${version}" 2>/dev/null
+        done
+    fi
+
+    # Only copy startup configuration on initial boot.
+    if [[ ! -f /etc/opt/srlinux/config.json && ! -f /etc/opt/srlinux/config.cli ]]; then
+        sudo cp -L /tmp/startup-config/* /etc/opt/srlinux/ 2>/dev/null || true
+    fi
 
     exec /entrypoint.sh "$@"
+

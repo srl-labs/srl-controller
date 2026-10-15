@@ -27,6 +27,9 @@ const (
 	readinessInitialDelay         = 10
 	readinessPeriodSeconds        = 5
 	readinessFailureThreshold     = 10
+
+	srlStateVolName = "srl-state"
+	srlStateMntPath = "/etc/opt/srlinux"
 )
 
 // podForSrlinux returns a srlinux Pod object.
@@ -144,6 +147,12 @@ func createAffinity(s *srlinuxv1.Srlinux) *corev1.Affinity {
 func createVolumes(s *srlinuxv1.Srlinux) []corev1.Volume {
 	vols := []corev1.Volume{
 		{
+			Name: srlStateVolName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
 			Name: variantsVolName,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -191,6 +200,10 @@ func createVolumes(s *srlinuxv1.Srlinux) []corev1.Volume {
 
 func createVolumeMounts(s *srlinuxv1.Srlinux) []corev1.VolumeMount {
 	vms := []corev1.VolumeMount{
+		{
+			Name:      srlStateVolName,
+			MountPath: srlStateMntPath,
+		},
 		{
 			Name:      variantsVolName,
 			MountPath: variantsVolMntPath,

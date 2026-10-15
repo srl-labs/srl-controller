@@ -9,16 +9,25 @@ metadata:
 data:
   topomac.sh: |
     #!/bin/bash
-    # this script is used to generate random OUI for base mac entry of an SR Linux topology yaml file
+    # Generates or restores SR Linux topology definition with a consistent base MAC.
 
     template_path="/tmp/topo/topo-template.yml"
+    persistent_path="/etc/opt/srlinux/topology.yml"
+    tmp_path="/etc/opt/srlinux/topology.yml.tmp"
     final_path="/tmp/topology.yml"
 
-    # generate random bytes
-    b1=$(printf "%02X" $(shuf -i 0-255 -n1))
-    b2=$(printf "%02X" $(shuf -i 0-255 -n1))
-    mac_portion=$b1:$b2
+    if [[ ! -s "${persistent_path}" ]]; then
+        echo "Generating new chassis base MAC on initial boot..."
+        b1=$(printf "%02X" $(shuf -i 0-255 -n1))
+        b2=$(printf "%02X" $(shuf -i 0-255 -n1))
+        mac_portion="${b1}:${b2}"
 
-    cp $template_path $final_path
+        cp "${template_path}" "${tmp_path}"
+        sed -i "s/__RANDMAC__/${mac_portion}/g" "${tmp_path}"
+        mv -f "${tmp_path}" "${persistent_path}"
+    else
+        echo "Reusing persistent chassis base MAC from previous boot."
+    fi
 
-    sed -i s/__RANDMAC__/$mac_portion/g $final_path
+    # Copy persistent topology definition to /tmp/topology.yml
+    cp -f "${persistent_path}" "${final_path}"
