@@ -133,3 +133,133 @@ func testReconcileForDeletedCR(_ *testing.T, c client.Client, reconciler Srlinux
 	pod := &corev1.Pod{}
 	g.Expect(c.Get(ctx, namespacedName, pod)).ToNot(Succeed())
 }
+
+func TestSrlinuxReconcile_NetworkNotReady(t *testing.T) {
+	g := NewWithT(t)
+
+	// Shorten timeout for test
+	oldTimeout := podIPReadyTimeout
+	oldInterval := podIPReadyInterval
+	podIPReadyTimeout = 100 * time.Millisecond
+	podIPReadyInterval = 20 * time.Millisecond
+	defer func() {
+		podIPReadyTimeout = oldTimeout
+		podIPReadyInterval = oldInterval
+	}()
+
+	srl := &srlinuxv1.Srlinux{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      defaultCRName,
+			Namespace: defaultNamespace,
+		},
+		Spec: srlinuxv1.SrlinuxSpec{
+			Config: &srlinuxv1.NodeConfig{
+				Image: defaultSrlinuxImage,
+			},
+		},
+		Status: srlinuxv1.SrlinuxStatus{
+			Ready:  true,
+			Status: "Running",
+			Image:  defaultSrlinuxImage,
+		},
+	}
+
+	pod := &corev1.Pod{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      defaultCRName,
+			Namespace: defaultNamespace,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  defaultCRName,
+				Image: defaultSrlinuxImage,
+			}},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			PodIP: "127.0.0.1",
+			ContainerStatuses: []corev1.ContainerStatus{{
+				Ready: true,
+			}},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithRuntimeObjects(srl, pod).
+		WithStatusSubresource(&srlinuxv1.Srlinux{}).
+		Build()
+
+	reconciler := SrlinuxReconciler{
+		Scheme: scheme.Scheme,
+		Client: fakeClient,
+	}
+
+	res, err := reconciler.Reconcile(context.TODO(), reconcile.Request{
+		NamespacedName: namespacedName,
+	})
+
+	// When network is not reachable (e.g. dial fails / times out), Reconcile MUST return an error so controller-runtime requeues
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(res.Requeue).To(BeFalse())
+}
+
+func TestSrlinuxReconcile_StartupConfigAlreadyProcessed(t *testing.T) {
+	g := NewWithT(t)
+
+	srl := &srlinuxv1.Srlinux{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      defaultCRName,
+			Namespace: defaultNamespace,
+		},
+		Spec: srlinuxv1.SrlinuxSpec{
+			Config: &srlinuxv1.NodeConfig{
+				Image: defaultSrlinuxImage,
+			},
+		},
+		Status: srlinuxv1.SrlinuxStatus{
+			Ready:  true,
+			Status: "Running",
+			Image:  defaultSrlinuxImage,
+			StartupConfig: srlinuxv1.StartupConfigStatus{
+				Phase: "loaded",
+			},
+		},
+	}
+
+	pod := &corev1.Pod{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      defaultCRName,
+			Namespace: defaultNamespace,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  defaultCRName,
+				Image: defaultSrlinuxImage,
+			}},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			PodIP: "127.0.0.1",
+			ContainerStatuses: []corev1.ContainerStatus{{
+				Ready: true,
+			}},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithRuntimeObjects(srl, pod).
+		WithStatusSubresource(&srlinuxv1.Srlinux{}).
+		Build()
+
+	reconciler := SrlinuxReconciler{
+		Scheme: scheme.Scheme,
+		Client: fakeClient,
+	}
+
+	res, err := reconciler.Reconcile(context.TODO(), reconcile.Request{
+		NamespacedName: namespacedName,
+	})
+
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.IsZero()).To(BeTrue())
+}
