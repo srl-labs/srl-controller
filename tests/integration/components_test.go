@@ -33,6 +33,24 @@ func TestComponentsValidation(t *testing.T) {
 		model:      "ixr10",
 		components: []srlinuxv1.Component{{Slot: 1}, {Slot: 2}},
 	}, {
+		desc:       "last slot on ixr6",
+		model:      "ixr6",
+		components: []srlinuxv1.Component{{Slot: 4}},
+	}, {
+		desc:       "last slot on ixr10e",
+		model:      "ixr10e",
+		components: []srlinuxv1.Component{{Slot: 8}},
+	}, {
+		desc:       "slot outside ixr6e chassis",
+		model:      "ixr6e",
+		components: []srlinuxv1.Component{{Slot: 4}, {Slot: 5}},
+		wantErr:    "components are only supported on models",
+	}, {
+		desc:       "slot outside ixr10 chassis",
+		model:      "ixr10",
+		components: []srlinuxv1.Component{{Slot: 9}},
+		wantErr:    "components are only supported on models",
+	}, {
 		desc:  "no components on fixed model",
 		model: "ixrd2l",
 	}, {
@@ -54,11 +72,11 @@ func TestComponentsValidation(t *testing.T) {
 		desc:       "components on fixed model",
 		model:      "ixrd3",
 		components: []srlinuxv1.Component{{Slot: 1}},
-		wantErr:    "only supported on modular models",
+		wantErr:    "components are only supported on models",
 	}, {
 		desc:       "components without model",
 		components: []srlinuxv1.Component{{Slot: 1}},
-		wantErr:    "only supported on modular models",
+		wantErr:    "components are only supported on models",
 	}}
 
 	for i, tt := range tests {

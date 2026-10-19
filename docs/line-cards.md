@@ -25,9 +25,13 @@ entry in the `srlinux-variants` config map, replacing its `slot_configuration` w
 
 When `components` is empty, the model's template is used unchanged.
 
-The CRD rejects duplicate slots, slots below 1, unknown line card types, and `components` on models other than
-`ixr6`, `ixr10`, `ixr6e` and `ixr10e`. The controller does not check that slots exist in the chassis or that
-line cards are compatible with each other. A slot outside the chassis makes SR Linux fail to start.
+The CRD rejects duplicate slots, slots below 1, unknown line card types, `components` on models other than `ixr6`,
+`ixr10`, `ixr6e` and `ixr10e`, and slots outside the chassis (1-4 on `ixr6` and `ixr6e`, 1-8 on `ixr10` and
+`ixr10e`).
+
+To support components on another model, add it and its number of line card slots to the map in the
+`+kubebuilder:validation:XValidation` marker on `SrlinuxSpec` in `api/v1/srlinux_types.go`, update the marker's
+message, and run `make manifests`.
 
 ## Supported line card types
 

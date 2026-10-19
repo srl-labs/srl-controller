@@ -89,6 +89,7 @@ spec:
                   required:
                   - slot
                   type: object
+                maxItems: 128
                 type: array
                 x-kubernetes-list-map-keys:
                 - slot
@@ -172,10 +173,10 @@ spec:
                 type: string
             type: object
             x-kubernetes-validations:
-            - message: components are only supported on modular models ixr6, ixr10,
-                ixr6e and ixr10e
-              rule: '!has(self.components) || (has(self.model) && self.model in [''ixr6'',
-                ''ixr10'', ''ixr6e'', ''ixr10e''])'
+            - message: components are only supported on models ixr6 and ixr6e (slots
+                1-4) and ixr10 and ixr10e (slots 1-8)
+              rule: '!has(self.components) || self.components.all(c, c.slot <= {''ixr6'':
+                4, ''ixr6e'': 4, ''ixr10'': 8, ''ixr10e'': 8}[?self.?model.orValue('''')].orValue(0))'
           status:
             description: SrlinuxStatus defines the observed state of Srlinux.
             properties:

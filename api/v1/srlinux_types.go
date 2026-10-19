@@ -35,7 +35,7 @@ import (
 )
 
 // SrlinuxSpec defines the desired state of Srlinux.
-// +kubebuilder:validation:XValidation:rule="!has(self.components) || (has(self.model) && self.model in ['ixr6', 'ixr10', 'ixr6e', 'ixr10e'])",message="components are only supported on modular models ixr6, ixr10, ixr6e and ixr10e"
+// +kubebuilder:validation:XValidation:rule="!has(self.components) || self.components.all(c, c.slot <= {'ixr6': 4, 'ixr6e': 4, 'ixr10': 8, 'ixr10e': 8}[?self.?model.orValue('')].orValue(0))",message="components are only supported on models ixr6 and ixr6e (slots 1-4) and ixr10 and ixr10e (slots 1-8)"
 type SrlinuxSpec struct {
 	Config        *NodeConfig       `json:"config,omitempty"`
 	NumInterfaces int               `json:"num-interfaces,omitempty"`
@@ -50,6 +50,7 @@ type SrlinuxSpec struct {
 	// When empty, the model's topology template is used unchanged.
 	// +listType=map
 	// +listMapKey=slot
+	// +kubebuilder:validation:MaxItems=128
 	Components []Component `json:"components,omitempty"`
 }
 
