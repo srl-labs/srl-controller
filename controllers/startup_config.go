@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,12 @@ import (
 	srlinuxv1 "github.com/srl-labs/srl-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+var (
+	ErrPodIPNotAssigned = errors.New("timed out waiting for pod IP")
+	ErrNetworkNotReady  = errors.New("timed out waiting for network readiness")
 )
 
 const (
@@ -23,7 +30,9 @@ const (
 	// default path to a startup config directory
 	// the default for config file name resides within kne.
 	defaultConfigPath = "/tmp/startup-config"
+)
 
+var (
 	podIPReadyTimeout  = 60 * time.Second
 	podIPReadyInterval = 2 * time.Second
 )
@@ -77,25 +86,29 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig( //nolint:funlen
 	log logr.Logger,
 	update *bool,
 	srlinux *srlinuxv1.Srlinux,
-) {
+) (ctrl.Result, bool, error) {
 	if srlinux.Status.StartupConfig.Phase != "" {
 		log.Info("startup config already processed, skipping")
 
-		return
+		return ctrl.Result{}, false, nil
 	}
 
 	// we need to wait for podIP to be ready as well as the network to be ready
 	// we do this before even checking if the startup config is provided
 	// because we need to create a checkpoing in any case
-	ip := r.waitPodIPReady(ctx, log, srlinux)
+	ip, err := r.waitPodIPReady(ctx, log, srlinux)
+	if err != nil {
+		return ctrl.Result{}, true, err
+	}
 
 	// even though the SR Linux management server is ready, the network might not be ready yet
 	// which results in transport errors when trying to open the scrapligo network driver.
 	// Hence we need to wait for the network to be ready.
-	driver := r.waitNetworkReady(ctx, log, ip)
-	if driver == nil {
-		return
+	driver, err := r.waitNetworkReady(ctx, log, ip)
+	if err != nil {
+		return ctrl.Result{}, true, err
 	}
+
 	defer func() {
 		if err := driver.Close(); err != nil {
 			log.Error(err, "failed to close driver")
@@ -115,20 +128,20 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig( //nolint:funlen
 			log.Error(err, "failed to create initial checkpoint")
 		}
 
-		return
+		return ctrl.Result{}, false, nil
 	}
 
 	log.Info("Loading provided startup configuration...", "filename",
 		srlinux.Spec.GetConfig().ConfigFile, "path", defaultConfigPath)
 
-	err := loadStartupConfig(ctx, driver, srlinux.Spec.GetConfig().ConfigFile, log)
+	err = loadStartupConfig(ctx, driver, srlinux.Spec.GetConfig().ConfigFile, log)
 	if err != nil {
 		srlinux.Status.StartupConfig.Phase = "failed"
 		*update = true
 
 		log.Error(err, "failed to load provided startup configuration")
 
-		return
+		return ctrl.Result{}, false, nil
 	}
 
 	log.Info("Loaded provided startup configuration...")
@@ -140,6 +153,8 @@ func (r *SrlinuxReconciler) handleSrlinuxStartupConfig( //nolint:funlen
 	if err != nil {
 		log.Error(err, "failed to create initial checkpoint after loading startup config")
 	}
+
+	return ctrl.Result{}, false, nil
 }
 
 // loadStartupConfig loads the provided startup config into the SR Linux device.
@@ -234,12 +249,18 @@ func createStartupLoadCmds(fileName, path string) []string {
 	return cmds
 }
 
-// podIPReady checks if the pod IP is assigned and sets the startup config phase to "pending" if not.
+// waitPodIPReady checks if the pod IP is assigned and returns it.
 func (r *SrlinuxReconciler) waitPodIPReady(
 	ctx context.Context,
 	log logr.Logger,
 	srlinux *srlinuxv1.Srlinux,
-) (podIP string) {
+) (string, error) {
+	if ip := r.getPodIP(ctx, srlinux); ip != "" {
+		log.Info("pod IP assigned", "pod-ip", ip)
+
+		return ip, nil
+	}
+
 	timeout := time.After(podIPReadyTimeout)
 	tick := time.NewTicker(podIPReadyInterval)
 
@@ -247,16 +268,18 @@ func (r *SrlinuxReconciler) waitPodIPReady(
 
 	for {
 		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
 		case <-timeout:
-			log.Error(fmt.Errorf("timed out waiting for pod IP"), "pod IP not assigned") //nolint:goerr113
+			log.Error(ErrPodIPNotAssigned, "pod IP not assigned")
 
-			return ""
+			return "", ErrPodIPNotAssigned
 		case <-tick.C:
 			ip := r.getPodIP(ctx, srlinux)
 			if ip != "" {
 				log.Info("pod IP assigned", "pod-ip", ip)
 
-				return ip
+				return ip, nil
 			}
 		}
 	}
@@ -275,7 +298,22 @@ func (r *SrlinuxReconciler) waitNetworkReady(
 	ctx context.Context,
 	log logr.Logger,
 	podIP string,
-) *network.Driver {
+) (*network.Driver, error) {
+	if podIP == "" {
+		return nil, ErrPodIPNotAssigned
+	}
+
+	log.Info("waiting for network readiness...")
+
+	d, err := r.getNetworkDriver(ctx, log, podIP)
+	if err == nil && d != nil {
+		log.Info("network ready")
+
+		return d, nil
+	}
+
+	lastErr := err
+
 	timeout := time.After(podIPReadyTimeout)
 
 	tick := time.NewTicker(podIPReadyInterval)
@@ -283,25 +321,35 @@ func (r *SrlinuxReconciler) waitNetworkReady(
 
 	for {
 		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		case <-timeout:
-			log.Error(fmt.Errorf("timed out waiting network readiness"), "Network not ready") //nolint:goerr113
+			if lastErr != nil {
+				err = fmt.Errorf("%w: %v", ErrNetworkNotReady, lastErr) //nolint:goerr113
+			} else {
+				err = ErrNetworkNotReady
+			}
 
-			return nil
+			log.Error(err, "Network not ready")
+
+			return nil, err
 		case <-tick.C:
 			log.Info("waiting for network readiness...")
 
-			d := r.getNetworkDriver(ctx, log, podIP)
-			if d != nil {
+			d, err := r.getNetworkDriver(ctx, log, podIP)
+			if err == nil && d != nil {
 				log.Info("network ready")
 
-				return d
+				return d, nil
 			}
+
+			lastErr = err
 		}
 	}
 }
 
 // getNetworkDriver returns the opened network driver for a given pod IP.
-func (*SrlinuxReconciler) getNetworkDriver(_ context.Context, log logr.Logger, podIP string) *network.Driver {
+func (*SrlinuxReconciler) getNetworkDriver(_ context.Context, log logr.Logger, podIP string) (*network.Driver, error) {
 	p, err := platform.NewPlatform(
 		"nokia_srl",
 		podIP,
@@ -313,24 +361,24 @@ func (*SrlinuxReconciler) getNetworkDriver(_ context.Context, log logr.Logger, p
 	if err != nil {
 		log.Error(err, "failed to create platform")
 
-		return nil
+		return nil, err
 	}
 
 	d, err := p.GetNetworkDriver()
 	if err != nil {
 		log.Error(err, "failed to fetch network driver from the platform")
 
-		return nil
+		return nil, err
 	}
 
 	err = d.Open()
 	if err != nil {
 		log.Error(err, "failed to open driver")
 
-		return nil
+		return nil, err
 	}
 
 	log.Info("SSH connection to pod established")
 
-	return d
+	return d, nil
 }

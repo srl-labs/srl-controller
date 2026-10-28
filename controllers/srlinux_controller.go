@@ -122,6 +122,8 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if res, isReturn, err := r.updateSrlinuxStatus(ctx, log, req, srlinux); isReturn {
 			return res, err
 		}
+
+		update = false
 	}
 
 	// refresh SR Linux CR
@@ -138,7 +140,9 @@ func (r *SrlinuxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	r.handleSrlinuxStartupConfig(ctx, log, &update, srlinux)
+	if res, isReturn, err := r.handleSrlinuxStartupConfig(ctx, log, &update, srlinux); isReturn {
+		return res, err
+	}
 
 	// updating Srlinux status
 	if update {
